@@ -179,7 +179,7 @@ header.card img {
     border-radius: 12px;
     overflow: hidden;
     position: relative;
-    padding: 0; /* Remove padding from the card itself */
+    padding: 0;
 }
 
 #main {
@@ -205,16 +205,17 @@ header.card img {
     background-color: black; /* Background for image if it doesn't fill */
 }
 
-/* Updated CSS for image-description-area */
+/* MODIFIED: Image Description Area */
 .image-description-area {
     background: var(--card-background);
-    padding: 20px; /* Keep padding inside */
+    padding: 20px;
     color: var(--text-color-dark);
     font-size: 1.1em;
     line-height: 1.6;
     border-top: 1px solid var(--border-color);
-    width: 100%; /* Explicitly take full width of its parent (#main) */
-    box-sizing: border-box; /* Include padding in the width calculation */
+    /* New styles to limit width */
+    max-width: 100%; /* Ensure it doesn't exceed its parent */
+    box-sizing: border-box; /* Include padding in the width */
 }
 
 /* === LINKS AND IMAGE LIST === */
