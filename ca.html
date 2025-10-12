@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Comment Example</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f4f4f8;
+    color: #212529;
+}
+
+.image-section {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.image-section img {
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+#comment-form-wrapper {
+    width: 100%;
+    margin-top: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: none; /* hidden by default */
+}
+
+#comment-form-wrapper iframe {
+    width: 100%;
+    height: 500px;
+    border: 0;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #800020;
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+button:hover {
+    background: #6a001a;
+}
+</style>
+</head>
+<body>
+
+<div class="image-section">
+    <h2>Example Image</h2>
+    <img src="https://via.placeholder.com/600x350/6c757d/ffffff?text=Sample+Image" alt="Sample Image">
+    <div id="main-image-description">
+        This is a description of the image. Users can leave comments below.
+    </div>
+
+    <!-- Add Comment button -->
+    <button onclick="showForm()">Add Comment</button>
+
+    <!-- Comment form container -->
+    <div id="comment-form-wrapper">
+        <iframe src="https://docs.google.com/forms/d/e/GOOGLE_FORM_ID/viewform?embedded=true"></iframe>
+    </div>
+</div>
+
+<script>
+function showForm() {
+    const wrapper = document.getElementById('comment-form-wrapper');
+    wrapper.style.display = wrapper.style.display === 'block' ? 'none' : 'block';
+    // Scroll to form if opening
+    if(wrapper.style.display === 'block') {
+        wrapper.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+</script>
+
+</body>
+</html>
