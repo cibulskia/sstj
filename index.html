@@ -22,6 +22,26 @@
     --transition-speed: 0.3s;
 }
 
+.link-item.active {
+    background-color: var(--primary-color); /* Bordo pozadina */
+    color: #fff; /* Beli tekst */
+    box-shadow: 0 6px 15px rgba(128, 0, 32, 0.3); /* Jača senka */
+    border-color: var(--primary-color);
+    transform: translateY(-3px);
+}
+
+.link-item.active .link-text {
+    color: #fff; /* Tekst unutar aktivnog linka */
+}
+
+.link-item.active:hover .link-text {
+    color: var(--text-color-dark); /* Postavite boju teksta na tamnu prilikom hovera */
+}
+    
+.link-item.active .link-text::before {
+    color: #fff; /* Ikona unutar aktivnog linka */
+}  
+  
 body {
     margin: 0;
     font-family: 'Poppins', sans-serif;
@@ -496,7 +516,7 @@ footer #rumble-link:hover svg { fill: #fff; }
                 <!-- Video player will be embedded here -->
                 <div class="video-wrapper" style="padding-bottom:56.25%">
                     <iframe 
-                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&controls=1" 
+                        src="https://www.youtube.com/embed/ZwLFWUrbFsk?autoplay=0&controls=1" 
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay" 
                         allowfullscreen>
                     </iframe>
@@ -538,6 +558,7 @@ const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_
 
 let allData = [];
 let autoplayEnabled = false;
+let activeLinkItem = null; // Dodajemo promenljivu za praćenje aktivnog linka
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -546,7 +567,8 @@ Papa.parse(sheetUrl, {
         allData = results.data.filter(row => row[0]);
         if (allData.length === 0) return;
 
-        // Populate dynamic content from the sheet
+        // ... (ostatak koda za popunjavanje headera i footera) ...
+
         document.getElementById("profile-img").src = allData[0][4] || "https://via.placeholder.com/70x70/800020/ffffff?text=P";
         document.getElementById("profile-name").textContent = allData[1][4] || "Your Channel Name";
         document.getElementById("profile-motto").textContent = allData[2][4] || "Your Inspiring Motto Here!";
@@ -561,33 +583,43 @@ Papa.parse(sheetUrl, {
         if (allData[7] && allData[7][4]) document.getElementById("twitter-link").href = allData[7][4];
         if (allData[8] && allData[8][4]) document.getElementById("rumble-link").href = allData[8][4];
 
+
         const linkSection = document.getElementById("link-section");
         linkSection.innerHTML = ''; // Clear existing content
-        allData.forEach(row => {
+        allData.forEach((row, index) => { // Dodaj index
             const linkText = row[2];
             const targetColumnLetter = row[3];
             if (linkText && targetColumnLetter) {
                 const linkItem = document.createElement("div");
                 linkItem.className = "link-item";
+                linkItem.dataset.columnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase()); // Dodaj data atribut za lakše prepoznavanje
                 const linkDiv = document.createElement("div");
                 linkDiv.className = "link-text";
                 linkDiv.textContent = linkText;
                 linkItem.appendChild(linkDiv);
                 linkItem.addEventListener("click", () => {
                     autoplayEnabled = true;
-                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
-                    if (colIndex === null) {
-                        console.error("Unknown column: " + targetColumnLetter);
+                    const colIndex = parseInt(linkItem.dataset.columnIndex); // Uzmi indeks iz data atributa
+                    if (isNaN(colIndex)) {
+                        console.error("Unknown column or invalid index: " + targetColumnLetter);
                         return;
                     }
                     showVideosFromColumn(colIndex);
-                    // Scroll to top of sidebar for better UX on mobile/smaller screens
+                    setActiveLink(linkItem); // Postavi ovaj link kao aktivan
                     document.getElementById('sidebar').scrollTop = 0;
                 });
                 linkSection.appendChild(linkItem);
             }
         });
-        showVideosFromColumn(0); // Show videos from the first column by default
+
+        // Inicijalno aktiviranje prvog linka
+        const firstLinkItem = linkSection.querySelector('.link-item');
+        if (firstLinkItem) {
+            setActiveLink(firstLinkItem);
+            showVideosFromColumn(parseInt(firstLinkItem.dataset.columnIndex));
+        } else {
+            showVideosFromColumn(0); // Fallback ako nema linkova
+        }
     }
 });
 
@@ -600,17 +632,28 @@ function letterToIndex(letter) {
     return index - 1;
 }
 
+function setActiveLink(linkItem) {
+    if (activeLinkItem) {
+        activeLinkItem.classList.remove('active'); // Ukloni active klasu sa prethodnog
+    }
+    linkItem.classList.add('active'); // Dodaj active klasu trenutnom
+    activeLinkItem = linkItem; // Ažuriraj aktivni link
+}
+
 function showVideosFromColumn(colIndex) {
     const videoSection = document.getElementById("video-section");
     const main = document.getElementById("main");
     videoSection.innerHTML = "";
-    
+
     const videos = allData
         .map(row => {
             const cell = row[colIndex];
             if (!cell || !cell.trim()) return null;
             const [link, thumb] = cell.split("|").map(s => s.trim());
-            return { link, thumb: thumb || "", desc: row[colIndex + 1] || "" };
+            // Assuming description is always in the next column
+            const descColIndex = colIndex + 1;
+            const desc = row[descColIndex] || "";
+            return { link, thumb: thumb || "", desc: desc };
         })
         .filter(v => v);
 
@@ -682,19 +725,18 @@ function embedVideo(link, container, autoplay, thumb) {
         const videoId = youTubeMatch[1];
         const autoplayParam = autoplay ? 1 : 0;
         container.innerHTML = `<div class="video-wrapper">
-            <iframe 
-                src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            <iframe
+                src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen>
             </iframe>
         </div>`;
     } else if (isRumble) {
-        // Ensure Rumble embed link is correct, handling different URL patterns
         const rumbleEmbedLink = link.replace('watch?v=', 'embed/').replace('video/', 'embed/');
         container.innerHTML = `<div class="video-wrapper">
-            <iframe 
-                src="${rumbleEmbedLink}" 
-                allow="autoplay; fullscreen; picture-in-picture" 
+            <iframe
+                src="${rumbleEmbedLink}"
+                allow="autoplay; fullscreen; picture-in-picture"
                 allowfullscreen>
             </iframe>
         </div>`;
