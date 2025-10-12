@@ -171,11 +171,11 @@ header.card img {
     font-weight: 400;
 }
 
-/* === MAIN VIDEO SECTION === */
+/* === MAIN IMAGE SECTION === */
 .main.card {
     display: flex;
     flex-direction: column;
-    background: var(--text-color-dark); /* Dark background for video player */
+    background: var(--text-color-dark); /* Dark background for image player */
     border-radius: 12px;
     overflow: hidden;
     position: relative;
@@ -186,8 +186,8 @@ header.card img {
     width: 100%;
 }
 
-/* === VIDEO WRAPPER === */
-.video-wrapper {
+/* === IMAGE WRAPPER === */
+.image-wrapper {
     position: relative;
     width: 100%;
     height: 0;
@@ -195,16 +195,26 @@ header.card img {
     overflow: hidden;
 }
 
-.video-wrapper iframe, .video-wrapper video {
+.image-wrapper img {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    border: none;
+    object-fit: contain; /* Ensure the image is fully visible */
+    background-color: black; /* Background for image if it doesn't fill */
 }
 
-/* === LINKS AND VIDEO LIST === */
+.image-description-area {
+    background: var(--card-background);
+    padding: 20px;
+    color: var(--text-color-dark);
+    font-size: 1.1em;
+    line-height: 1.6;
+    border-top: 1px solid var(--border-color);
+}
+
+/* === LINKS AND IMAGE LIST === */
 .section-title {
     font-size: 1.2em;
     font-weight: 600;
@@ -227,7 +237,7 @@ header.card img {
     border-radius: 2px;
 }
 
-.link-item, .video-item {
+.link-item, .image-item {
     display: flex;
     align-items: center;
     margin-bottom: 15px;
@@ -240,7 +250,7 @@ header.card img {
     border: 1px solid var(--border-color);
 }
 
-.link-item:hover, .video-item:hover {
+.link-item:hover, .image-item:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 15px var(--shadow-medium);
     background: var(--background-light);
@@ -268,7 +278,7 @@ header.card img {
     color: var(--primary-color);
 }
 
-.video-item img {
+.image-item img {
     width: 140px;
     height: 80px;
     object-fit: cover;
@@ -277,7 +287,7 @@ header.card img {
     border: 1px solid var(--border-color);
 }
 
-.video-info {
+.image-info {
     margin-left: 15px;
     display: flex;
     flex-direction: column;
@@ -285,37 +295,12 @@ header.card img {
     flex-grow: 1;
 }
 
-.video-desc {
+.image-title {
     font-size: 0.9em;
-    color: var(--text-color-medium);
+    color: var(--text-color-dark);
+    font-weight: 600;
     line-height: 1.3;
     word-break: break-word;
-    position: relative;
-    font-weight: 400;
-}
-
-/* === TOOLTIP === */
-.video-desc[data-full]:hover::after {
-    content: attr(data-full);
-    position: absolute;
-    background: var(--text-color-dark);
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 8px;
-    bottom: calc(100% + 10px); /* Position above */
-    left: 0;
-    white-space: normal;
-    max-width: 300px;
-    z-index: 100;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    font-size: 0.85em;
-    animation: fadeIn 0.3s forwards;
-    transform-origin: bottom left;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Scrollbar */
@@ -441,18 +426,18 @@ footer #rumble-link:hover svg { fill: #fff; }
     .section-title {
         font-size: 1.1em;
     }
-    .link-item, .video-item {
+    .link-item, .image-item {
         padding: 10px;
         margin-bottom: 10px;
     }
-    .video-item img {
+    .image-item img {
         width: 100px;
         height: 60px;
     }
-    .video-info {
+    .image-info {
         margin-left: 10px;
     }
-    .video-desc {
+    .image-title {
         font-size: 0.85em;
     }
     footer.card {
@@ -496,8 +481,8 @@ footer #rumble-link:hover svg { fill: #fff; }
         <div id="sidebar">
             <div class="section-title" id="content-title"></div>
             <div id="link-section"></div>
-            <div class="section-title" id="video-title"></div>
-            <div id="video-section"></div>
+            <div class="section-title" id="image-list-title">Images</div> <!-- Changed from video-title -->
+            <div id="image-section"></div> <!-- Changed from video-section -->
         </div>
     </aside>
 
@@ -513,13 +498,12 @@ footer #rumble-link:hover svg { fill: #fff; }
 
         <main class="main card">
             <div id="main">
-                <!-- Video player will be embedded here -->
-                <div class="video-wrapper" style="padding-bottom:56.25%">
-                    <iframe 
-                        src="https://www.youtube.com/embed/ZwLFWUrbFsk?autoplay=0&controls=1" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay" 
-                        allowfullscreen>
-                    </iframe>
+                <!-- Image player and description will be embedded here -->
+                <div class="image-wrapper">
+                    <img id="main-image" src="https://via.placeholder.com/1280x720/6c757d/ffffff?text=Select+an+Image">
+                </div>
+                <div id="main-image-description" class="image-description-area">
+                    Select an image from the list to see its details here.
                 </div>
             </div>
         </main>
@@ -527,7 +511,7 @@ footer #rumble-link:hover svg { fill: #fff; }
         <footer class="card">
             <div class="footer-left">
                 <button id="footer-btn1">Donate</button>
-                <button id="footer-btn2">My Blogger</button>
+                <button id="footer-btn2">My Channel</button>
             </div>
             <div class="footer-center" id="footer-text">© 2023 My Channel. All rights reserved.</div>
             <div class="footer-right">
@@ -554,11 +538,10 @@ footer #rumble-link:hover svg { fill: #fff; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1440834607&single=true&output=csv";
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=554625026&single=true&output=csv";
 
 let allData = [];
-let autoplayEnabled = false;
-let activeLinkItem = null; // Dodajemo promenljivu za praćenje aktivnog linka
+let activeLinkItem = null; // Variable to track the active link
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -567,14 +550,13 @@ Papa.parse(sheetUrl, {
         allData = results.data.filter(row => row[0]);
         if (allData.length === 0) return;
 
-        // ... (ostatak koda za popunjavanje headera i footera) ...
-
+        // Populate header and footer elements
         document.getElementById("profile-img").src = allData[0][4] || "https://via.placeholder.com/70x70/800020/ffffff?text=P";
         document.getElementById("profile-name").textContent = allData[1][4] || "Your Channel Name";
         document.getElementById("profile-motto").textContent = allData[2][4] || "Your Inspiring Motto Here!";
         document.getElementById("footer-text").textContent = allData[3][4] || "© 2023 My Channel. All rights reserved.";
         document.getElementById("content-title").textContent = allData[4][4] || "Links";
-        document.getElementById("video-title").textContent = allData[5][4] || "Videos";
+        document.getElementById("image-list-title").textContent = allData[5][4] || "Images"; // Changed to image-list-title
 
         if (allData[9] && allData[9][4]) document.getElementById("footer-btn1").onclick = () => window.open(allData[9][4], '_blank');
         if (allData[10] && allData[10][4]) document.getElementById("footer-btn2").onclick = () => window.open(allData[10][4], '_blank');
@@ -586,39 +568,38 @@ Papa.parse(sheetUrl, {
 
         const linkSection = document.getElementById("link-section");
         linkSection.innerHTML = ''; // Clear existing content
-        allData.forEach((row, index) => { // Dodaj index
+        allData.forEach((row, index) => {
             const linkText = row[2];
             const targetColumnLetter = row[3];
             if (linkText && targetColumnLetter) {
                 const linkItem = document.createElement("div");
                 linkItem.className = "link-item";
-                linkItem.dataset.columnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase()); // Dodaj data atribut za lakše prepoznavanje
+                linkItem.dataset.columnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
                 const linkDiv = document.createElement("div");
                 linkDiv.className = "link-text";
                 linkDiv.textContent = linkText;
                 linkItem.appendChild(linkDiv);
                 linkItem.addEventListener("click", () => {
-                    autoplayEnabled = true;
-                    const colIndex = parseInt(linkItem.dataset.columnIndex); // Uzmi indeks iz data atributa
+                    const colIndex = parseInt(linkItem.dataset.columnIndex);
                     if (isNaN(colIndex)) {
                         console.error("Unknown column or invalid index: " + targetColumnLetter);
                         return;
                     }
-                    showVideosFromColumn(colIndex);
-                    setActiveLink(linkItem); // Postavi ovaj link kao aktivan
+                    showImagesFromColumn(colIndex);
+                    setActiveLink(linkItem);
                     document.getElementById('sidebar').scrollTop = 0;
                 });
                 linkSection.appendChild(linkItem);
             }
         });
 
-        // Inicijalno aktiviranje prvog linka
+        // Initially activate the first link
         const firstLinkItem = linkSection.querySelector('.link-item');
         if (firstLinkItem) {
             setActiveLink(firstLinkItem);
-            showVideosFromColumn(parseInt(firstLinkItem.dataset.columnIndex));
+            showImagesFromColumn(parseInt(firstLinkItem.dataset.columnIndex));
         } else {
-            showVideosFromColumn(0); // Fallback ako nema linkova
+            showImagesFromColumn(0); // Fallback if no links
         }
     }
 });
@@ -634,117 +615,70 @@ function letterToIndex(letter) {
 
 function setActiveLink(linkItem) {
     if (activeLinkItem) {
-        activeLinkItem.classList.remove('active'); // Ukloni active klasu sa prethodnog
+        activeLinkItem.classList.remove('active');
     }
-    linkItem.classList.add('active'); // Dodaj active klasu trenutnom
-    activeLinkItem = linkItem; // Ažuriraj aktivni link
+    linkItem.classList.add('active');
+    activeLinkItem = linkItem;
 }
 
-function showVideosFromColumn(colIndex) {
-    const videoSection = document.getElementById("video-section");
-    const main = document.getElementById("main");
-    videoSection.innerHTML = "";
+function showImagesFromColumn(colIndex) {
+    const imageSection = document.getElementById("image-section"); // Changed from video-section
+    const mainImageElement = document.getElementById("main-image");
+    const mainImageDescriptionElement = document.getElementById("main-image-description");
+    imageSection.innerHTML = "";
 
-    const videos = allData
+    const images = allData
         .map(row => {
             const cell = row[colIndex];
             if (!cell || !cell.trim()) return null;
-            const [link, thumb] = cell.split("|").map(s => s.trim());
+            const [imageUrl, title] = cell.split("|").map(s => s.trim());
+            
             // Assuming description is always in the next column
             const descColIndex = colIndex + 1;
-            const desc = row[descColIndex] || "";
-            return { link, thumb: thumb || "", desc: desc };
+            const description = row[descColIndex] || ""; // Get description from the next column
+            
+            return { imageUrl, title, description };
         })
         .filter(v => v);
 
-    if (videos.length === 0) {
-        videoSection.innerHTML = "<div style='text-align:center; color:var(--text-color-light); padding: 20px;'>No videos in this section.</div>";
-        main.innerHTML = ""; // Clear main video player
+    if (images.length === 0) {
+        imageSection.innerHTML = "<div style='text-align:center; color:var(--text-color-light); padding: 20px;'>No images in this section.</div>";
+        mainImageElement.src = "https://via.placeholder.com/1280x720/6c757d/ffffff?text=Select+an+Image"; // Reset main image
+        mainImageDescriptionElement.textContent = "Select an image from the list to see its details here.";
         return;
     }
 
-    // Embed the first video
-    const firstVideo = videos[0];
-    embedVideo(firstVideo.link, main, autoplayEnabled, firstVideo.thumb);
+    // Display the first image in the main section
+    const firstImage = images[0];
+    mainImageElement.src = firstImage.imageUrl;
+    mainImageDescriptionElement.textContent = firstImage.description; // Display description
 
-    // List all videos in reverse order (newest first if sorted in sheet)
-    [...videos].reverse().forEach(({ link, thumb, desc }) => {
-        const videoItem = document.createElement("div");
-        videoItem.className = "video-item";
+    // List all images in reverse order (newest first if sorted in sheet)
+    [...images].reverse().forEach(({ imageUrl, title, description }) => {
+        const imageItem = document.createElement("div"); // Changed from video-item
+        imageItem.className = "image-item";
 
         const thumbnail = document.createElement("img");
-        // Improved thumbnail handling for YouTube
-        const youTubeMatch = link.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-        const isYouTube = !!youTubeMatch;
-        const isRumble = link.includes("rumble.com");
-        const isCustom = !isYouTube && !isRumble;
-
-        if (isYouTube) {
-            const videoId = youTubeMatch[1];
-            thumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-            thumbnail.alt = "YouTube Thumbnail";
-        } else if (isRumble) {
-            thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Rumble";
-            thumbnail.alt = "Rumble Thumbnail";
-        } else if (isCustom) {
-            thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Video";
-            thumbnail.alt = "Custom Video Thumbnail";
-        }
+        thumbnail.src = imageUrl || "https://via.placeholder.com/140x80?text=Image";
+        thumbnail.alt = title;
 
         const info = document.createElement("div");
-        info.className = "video-info";
-        const description = document.createElement("div");
-        description.className = "video-desc";
+        info.className = "image-info"; // Changed from video-info
+        const imageTitle = document.createElement("div"); // Changed from video-desc
+        imageTitle.className = "image-title";
+        imageTitle.textContent = title; // Use the parsed title
 
-        const fullText = desc.trim();
-        const shortText = fullText.length > 60 ? fullText.slice(0, 60) + "…" : fullText; // Slightly longer truncation
-        description.textContent = shortText;
-        if (fullText.length > 60) { // Only add tooltip if text is actually truncated
-            description.setAttribute("data-full", fullText);
-        }
+        info.appendChild(imageTitle);
 
-        info.appendChild(description);
+        imageItem.appendChild(thumbnail);
+        imageItem.appendChild(info);
 
-        videoItem.appendChild(thumbnail);
-        videoItem.appendChild(info);
-
-        videoItem.addEventListener("click", () => {
-            embedVideo(link, main, true, thumb);
+        imageItem.addEventListener("click", () => {
+            mainImageElement.src = imageUrl;
+            mainImageDescriptionElement.textContent = description; // Update description when image is clicked
         });
-        videoSection.appendChild(videoItem);
+        imageSection.appendChild(imageItem);
     });
-}
-
-function embedVideo(link, container, autoplay, thumb) {
-    const youTubeMatch = link.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    const isYouTube = !!youTubeMatch;
-    const isRumble = link.includes("rumble.com");
-    const isCustom = !isYouTube && !isRumble;
-
-    if (isYouTube) {
-        const videoId = youTubeMatch[1];
-        const autoplayParam = autoplay ? 1 : 0;
-        container.innerHTML = `<div class="video-wrapper">
-            <iframe
-                src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen>
-            </iframe>
-        </div>`;
-    } else if (isRumble) {
-        const rumbleEmbedLink = link.replace('watch?v=', 'embed/').replace('video/', 'embed/');
-        container.innerHTML = `<div class="video-wrapper">
-            <iframe
-                src="${rumbleEmbedLink}"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowfullscreen>
-            </iframe>
-        </div>`;
-    } else if (isCustom) {
-        container.innerHTML = `<div class="video-wrapper">
-            <video src="${link}" poster="${thumb}" controls ${autoplay ? "autoplay" : ""}></video>
-        </div>`;
-    }
 }
 </script>
 
