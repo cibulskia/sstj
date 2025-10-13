@@ -697,9 +697,9 @@ function showVideosFromColumn(colIndex) {
         description.className = "video-desc";
 
         const fullText = desc.trim();
-        const shortText = fullText.length > 50 ? fullText.slice(0, 50) + "…" : fullText; // Slightly longer truncation
+        const shortText = fullText.length > 35 ? fullText.slice(0, 35) + "…" : fullText; // Slightly longer truncation
         description.textContent = shortText;
-        if (fullText.length > 50) { // Only add tooltip if text is actually truncated
+        if (fullText.length > 35) { // Only add tooltip if text is actually truncated
             description.setAttribute("data-full", fullText);
         }
 
