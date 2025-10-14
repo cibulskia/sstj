@@ -169,7 +169,6 @@ header.card img {
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* Ograničavanje teksta na 35 karaktera sa elipsom i tooltip */
 .link-text {
     font-size: 14px;
     color: #333;
@@ -177,24 +176,21 @@ header.card img {
     word-break: break-word;
     flex-grow: 1;
     text-decoration: none;
-    overflow: hidden;
+    /* Dodato za skraćivanje teksta */
     white-space: nowrap;
+    overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%; /* Da se ellipsis prikaže pravilno */
 }
 
-.link-text:hover {
-    overflow: visible;
+/* Hover efekat za prikaz celog teksta */
+.link-item:hover .link-text {
     white-space: normal;
-    background: #fff;
-    position: absolute;
-    z-index: 100;
-    padding: 5px 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    border-radius: 5px;
-    max-width: 300px;
+    overflow: visible;
+    text-overflow: unset;
 }
 
-/* Video item styles */
+
 .video-item img {
     width: 120px;
     height: auto;
@@ -258,12 +254,12 @@ header.card img {
 
 .footer-buttons-right {
     display: flex;
-    gap: 10px; 
+    gap: 10px; /* Space between buttons */
 }
 
 .footer-buttons-right .button-link {
-    background-color: #f0f0f0; 
-    border: 1px solid #ccc; 
+    background-color: #f0f0f0; /* Light grey background */
+    border: 1px solid #ccc; /* Subtle border */
     padding: 8px 12px;
     border-radius: 5px;
     text-decoration: none;
@@ -272,8 +268,10 @@ header.card img {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-    white-space: nowrap; 
+    white-space: nowrap; /* Prevent text wrapping */
 }
+
+/* No hover effects as per request */
 </style>
 </head>
 <body>
@@ -334,6 +332,7 @@ const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
+const MAX_LINK_TEXT_LENGTH = 35; // Maksimalna dužina teksta linka
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
@@ -392,16 +391,22 @@ Papa.parse(sheetUrl, {
         const linkSection = document.getElementById("link-section");
 
         allData.forEach(row => {
-            const linkText = row[2];
+            const fullLinkText = row[2];
             const targetColumnLetter = row[3];
 
-            if (linkText && targetColumnLetter) {
+            if (fullLinkText && targetColumnLetter) {
                 const linkItem = document.createElement("div");
                 linkItem.className = "link-item";
 
                 const linkDiv = document.createElement("div");
                 linkDiv.className = "link-text";
-                linkDiv.textContent = linkText;
+                // Skraćivanje teksta linka
+                linkDiv.textContent = fullLinkText.length > MAX_LINK_TEXT_LENGTH
+                                        ? fullLinkText.substring(0, MAX_LINK_TEXT_LENGTH) + '...'
+                                        : fullLinkText;
+                // Dodavanje punog teksta kao title atribut za hover efekat
+                linkDiv.title = fullLinkText;
+
 
                 linkItem.appendChild(linkDiv);
 
@@ -528,22 +533,34 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    const player = new YT.Player(iframe, {
-        events: {
-            'onStateChange': function(event) {
-                if (event.data === YT.PlayerState.ENDED) {
-                    if (autoplayNextEnabled) {
-                        let nextIndex = videoIndex + 1;
-                        if (nextIndex >= currentVideos.length) nextIndex = 0;
-                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                    } else {
-                        player.seekTo(0);
-                        player.playVideo();
+    // Check if YT is defined (meaning API is loaded)
+    if (typeof YT !== 'undefined' && YT.Player) {
+        const player = new YT.Player(iframe, {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            player.seekTo(0);
+                            player.playVideo();
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } else {
+        // Fallback if API not loaded, or handle error
+        console.warn("YouTube IFrame API not fully loaded. Autoplay next functionality might be limited.");
+        // You might want to add a simple video ended check if autoplayNextEnabled
+        iframe.onload = () => {
+            // This is a very basic fallback and might not be reliable
+            // For robust control, the YT API is necessary.
+            // Consider adding a listener here if the video just finishes playing without the API.
+        };
+    }
 }
 
 // Load YouTube IFrame API
