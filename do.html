@@ -39,6 +39,13 @@ body {
     fill: currentColor;
 }
 
+<div id="sheet-prompt" style="text-align:center; margin:20px;">
+    <label for="sheet-url">Unesi Google Sheet CSV link:</label>
+    <input type="text" id="sheet-url" style="width: 60%;">
+    <button id="load-sheet">Učitaj</button>
+</div>
+
+    
 .page-wrapper {
     width: 1600px;
     display: flex;
@@ -468,11 +475,20 @@ const playNextButton = document.getElementById("play-next");
 const footerButton1 = document.getElementById("footer-button-1");
 const footerButton2 = document.getElementById("footer-button-2");
 
+let allData = [];
+let autoplayEnabled = false;
+let autoplayNextEnabled = false;
+let currentVideos = [];
+let loadedVideoCount = 0;
+const VIDEOS_PER_LOAD = 10;
+let selectedColumnIndex = 0;
+let currentActiveLink = null;
+let currentVideoIndex = 0;
 
+// Checkbox i Play Next
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
 });
-
 playNextButton.addEventListener("click", () => {
     if (!currentVideos.length) return;
     let nextIndex = currentVideoIndex + 1;
@@ -480,75 +496,87 @@ playNextButton.addEventListener("click", () => {
     embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
 });
 
-Papa.parse(sheetUrl, {
-    download: true,
-    header: false,
-    complete: function(results) {
-        allData = results.data.filter(row => row[0]);
-        if (allData.length === 0) return;
+// Učitavanje sheet-a kada korisnik unese link
+document.getElementById("load-sheet").addEventListener("click", () => {
+    const url = document.getElementById("sheet-url").value.trim();
+    if (!url) return alert("Unesi validan link do CSV sheet-a!");
 
-        document.getElementById("profile-img").src = allData[0][4];
-        document.getElementById("profile-name").textContent = allData[1][4];
-        document.getElementById("profile-motto").textContent = allData[2][4];
-        document.getElementById("footer-text").textContent = allData[3][4];
-        document.getElementById("content-title").textContent = allData[4][4];
-        document.getElementById("video-title").textContent = allData[5][4];
-
-        if (allData[6] && allData[6][4]) {
-            const [text, link] = allData[6][4].split('|').map(s => s.trim());
-            if (text && link) {
-                footerButton1.textContent = text;
-                footerButton1.href = link;
-                footerButton1.style.display = 'inline-flex';
+    Papa.parse(url, {
+        download: true,
+        header: false,
+        complete: function(results) {
+            allData = results.data.filter(row => row[0]);
+            if (allData.length === 0) {
+                alert("Sheet je prazan ili nije validan!");
+                return;
             }
+
+            document.getElementById("profile-img").src = allData[0][4];
+            document.getElementById("profile-name").textContent = allData[1][4];
+            document.getElementById("profile-motto").textContent = allData[2][4];
+            document.getElementById("footer-text").textContent = allData[3][4];
+            document.getElementById("content-title").textContent = allData[4][4];
+            document.getElementById("video-title").textContent = allData[5][4];
+
+            if (allData[6] && allData[6][4]) {
+                const [text, link] = allData[6][4].split('|').map(s => s.trim());
+                if (text && link) {
+                    footerButton1.textContent = text;
+                    footerButton1.href = link;
+                    footerButton1.style.display = 'inline-flex';
+                }
+            }
+            if (allData[7] && allData[7][4]) {
+                const [text, link] = allData[7][4].split('|').map(s => s.trim());
+                if (text && link) {
+                    footerButton2.textContent = text;
+                    footerButton2.href = link;
+                    footerButton2.style.display = 'inline-flex';
+                }
+            }
+
+            // Kreiranje link sekcije
+            const linkSection = document.getElementById("link-section");
+            linkSection.innerHTML = ""; // reset
+            allData.forEach(row => {
+                const linkText = row[2];
+                const targetColumnLetter = row[3];
+                if (linkText && targetColumnLetter) {
+                    const linkItem = document.createElement("div");
+                    linkItem.className = "link-item";
+
+                    const linkDiv = document.createElement("div");
+                    linkDiv.className = "link-text";
+                    linkDiv.textContent = linkText;
+
+                    linkItem.appendChild(linkDiv);
+
+                    linkItem.addEventListener("click", () => {
+                        if (currentActiveLink) currentActiveLink.classList.remove("active");
+                        currentActiveLink = linkItem;
+                        currentActiveLink.classList.add("active");
+
+                        autoplayEnabled = true;
+                        const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+                        if (colIndex === null) {
+                            alert("Nepoznata kolona: " + targetColumnLetter);
+                            return;
+                        }
+                        selectedColumnIndex = colIndex;
+                        resetAndShowVideosFromColumn(colIndex);
+                    });
+
+                    linkSection.appendChild(linkItem);
+                }
+            });
+
+            resetAndShowVideosFromColumn(0);
+            sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
+
+            // Sakrij prompt
+            document.getElementById("sheet-prompt").style.display = "none";
         }
-        if (allData[7] && allData[7][4]) {
-            const [text, link] = allData[7][4].split('|').map(s => s.trim());
-            if (text && link) {
-                footerButton2.textContent = text;
-                footerButton2.href = link;
-                footerButton2.style.display = 'inline-flex';
-            }
-        }
-
-        const linkSection = document.getElementById("link-section");
-
-        allData.forEach(row => {
-            const linkText = row[2];
-            const targetColumnLetter = row[3];
-
-            if (linkText && targetColumnLetter) {
-                const linkItem = document.createElement("div");
-                linkItem.className = "link-item";
-
-                const linkDiv = document.createElement("div");
-                linkDiv.className = "link-text";
-                linkDiv.textContent = linkText;
-
-                linkItem.appendChild(linkDiv);
-
-                linkItem.addEventListener("click", () => {
-                    if (currentActiveLink) currentActiveLink.classList.remove("active");
-                    currentActiveLink = linkItem;
-                    currentActiveLink.classList.add("active");
-
-                    autoplayEnabled = true;
-                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
-                    if (colIndex === null) {
-                        alert("Nepoznata kolona: " + targetColumnLetter);
-                        return;
-                    }
-                    selectedColumnIndex = colIndex;
-                    resetAndShowVideosFromColumn(colIndex);
-                });
-
-                linkSection.appendChild(linkItem);
-            }
-        });
-
-        resetAndShowVideosFromColumn(0);
-        sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
-    }
+    });
 });
 
 function letterToIndex(letter) {
