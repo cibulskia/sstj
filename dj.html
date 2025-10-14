@@ -195,29 +195,35 @@ header.card img {
 
 .video-desc {
     font-size: 13px;
-    color: #333; /* Promenjeno iz #666 da bude vidljivije za skraćivanje */
+    color: #666;
     line-height: 1.2;
     word-break: break-word;
-    /* Dodato za skraćivanje teksta */
-    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* Skraćeni tekst na 35 karaktera sa hover efektom */
+.video-desc[data-full] {
     overflow: hidden;
     text-overflow: ellipsis;
-    position: relative; /* Potrebno za hover efekat */
+    white-space: nowrap;
 }
 
-.video-desc:hover {
-    overflow: visible;
+.video-desc[data-full]:hover::after {
+    content: attr(data-full);
+    position: absolute;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 5px;
     white-space: normal;
-    background-color: #f9f9f9; /* Svetlija pozadina na hoveru */
-    padding: 2px 5px;
-    border-radius: 3px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 10; /* Osigurava da je iznad ostalih elemenata */
-    position: absolute; /* Prikazuje se preko ostalih elemenata */
-    max-width: fit-content; /* Omogućava da se proširi samo koliko treba */
-    width: auto; /* Da se prilagodi sadržaju */
+    width: max-content;
+    max-width: 250px;
+    z-index: 1000;
+    top: -5px;
+    left: 100%;
 }
 
+/* Scrollbar */
 #sidebar-content-wrapper::-webkit-scrollbar {
     width: 8px;
 }
@@ -259,12 +265,12 @@ header.card img {
 
 .footer-buttons-right {
     display: flex;
-    gap: 10px; /* Space between buttons */
+    gap: 10px;
 }
 
 .footer-buttons-right .button-link {
-    background-color: #f0f0f0; /* Light grey background */
-    border: 1px solid #ccc; /* Subtle border */
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
     padding: 8px 12px;
     border-radius: 5px;
     text-decoration: none;
@@ -273,10 +279,8 @@ header.card img {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-    white-space: nowrap; /* Prevent text wrapping */
+    white-space: nowrap;
 }
-
-/* No hover effects as per request */
 </style>
 </head>
 <body>
@@ -337,7 +341,6 @@ const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
-const MAX_DESC_LENGTH = 35; // Maksimalna dužina opisa
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
@@ -347,7 +350,6 @@ const autoplayNextCheckbox = document.getElementById("autoplay-next");
 const playNextButton = document.getElementById("play-next");
 const footerButton1 = document.getElementById("footer-button-1");
 const footerButton2 = document.getElementById("footer-button-2");
-
 
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
@@ -374,8 +376,7 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        // Process footer buttons from E7 and E8
-        if (allData[6] && allData[6][4]) { // E7
+        if (allData[6] && allData[6][4]) {
             const [text, link] = allData[6][4].split('|').map(s => s.trim());
             if (text && link) {
                 footerButton1.textContent = text;
@@ -383,7 +384,7 @@ Papa.parse(sheetUrl, {
                 footerButton1.style.display = 'inline-flex';
             }
         }
-        if (allData[7] && allData[7][4]) { // E8
+        if (allData[7] && allData[7][4]) {
             const [text, link] = allData[7][4].split('|').map(s => s.trim());
             if (text && link) {
                 footerButton2.textContent = text;
@@ -391,7 +392,6 @@ Papa.parse(sheetUrl, {
                 footerButton2.style.display = 'inline-flex';
             }
         }
-
 
         const linkSection = document.getElementById("link-section");
 
@@ -428,7 +428,6 @@ Papa.parse(sheetUrl, {
             }
         });
 
-        // Inicijalno učitavanje prve kolone
         resetAndShowVideosFromColumn(0);
         sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
     }
@@ -464,6 +463,11 @@ function resetAndShowVideosFromColumn(colIndex) {
     loadMoreVideos();
 }
 
+function truncateText(text, length = 35) {
+    if (!text) return "";
+    return text.length > length ? text.slice(0, length) + "…" : text;
+}
+
 function loadMoreVideos() {
     if (loadedVideoCount >= currentVideos.length) return;
     videoLoadingIndicator.style.display = 'block';
@@ -489,9 +493,8 @@ function loadMoreVideos() {
 
         const description = document.createElement("div");
         description.className = "video-desc";
-        // Skrati tekst za prikaz, ali sačuvaj ceo tekst u title atributu za hover
-        description.textContent = desc.length > MAX_DESC_LENGTH ? desc.substring(0, MAX_DESC_LENGTH) + '...' : desc;
-        description.title = desc; // Celokupan tekst za hover
+        description.textContent = truncateText(desc, 35);
+        description.setAttribute("data-full", desc);
 
         info.appendChild(description);
         videoItem.appendChild(thumbnail);
@@ -535,30 +538,22 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    // Proverite da li je YT.Player definisan
-    if (typeof YT !== 'undefined' && YT.Player) {
-        new YT.Player(iframe, {
-            events: {
-                'onStateChange': function(event) {
-                    if (event.data === YT.PlayerState.ENDED) {
-                        if (autoplayNextEnabled) {
-                            let nextIndex = videoIndex + 1;
-                            if (nextIndex >= currentVideos.length) nextIndex = 0;
-                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                        } else {
-                            // Ponovi trenutni video ako autoplay nije uključen
-                            player.seekTo(0);
-                            player.playVideo();
-                        }
+    const player = new YT.Player(iframe, {
+        events: {
+            'onStateChange': function(event) {
+                if (event.data === YT.PlayerState.ENDED) {
+                    if (autoplayNextEnabled) {
+                        let nextIndex = videoIndex + 1;
+                        if (nextIndex >= currentVideos.length) nextIndex = 0;
+                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                    } else {
+                        player.seekTo(0);
+                        player.playVideo();
                     }
                 }
             }
-        });
-    } else {
-        // Fallback ako YT.Player nije dostupan odmah (npr. skripta se još učitava)
-        // Ovo može biti problematično, ali za testiranje je OK
-        console.warn("YouTube IFrame API player not ready. Autoplay functionality for ended videos might be limited.");
-    }
+        }
+    });
 }
 
 // Load YouTube IFrame API
