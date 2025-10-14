@@ -558,17 +558,19 @@ const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_
 
 let allData = [];
 let autoplayEnabled = false;
-let activeLinkItem = null; // Dodajemo promenljivu za praćenje aktivnog linka
+let activeLinkItem = null;
+let currentVideos = [];
+let loadedCount = 0;
+const chunkSize = 10; // koliko video-itema učitavati po batch-u
 
 Papa.parse(sheetUrl, {
     download: true,
     header: false,
     complete: function(results) {
         allData = results.data.filter(row => row[0]);
-        if (allData.length === 0) return;
+        if (!allData.length) return;
 
-        // ... (ostatak koda za popunjavanje headera i footera) ...
-
+        // Popunjavanje headera i footera
         document.getElementById("profile-img").src = allData[0][4] || "https://via.placeholder.com/70x70/800020/ffffff?text=P";
         document.getElementById("profile-name").textContent = allData[1][4] || "Your Channel Name";
         document.getElementById("profile-motto").textContent = allData[2][4] || "Your Inspiring Motto Here!";
@@ -578,47 +580,42 @@ Papa.parse(sheetUrl, {
 
         if (allData[9] && allData[9][4]) document.getElementById("footer-btn1").onclick = () => window.open(allData[9][4], '_blank');
         if (allData[10] && allData[10][4]) document.getElementById("footer-btn2").onclick = () => window.open(allData[10][4], '_blank');
-
         if (allData[6] && allData[6][4]) document.getElementById("youtube-link").href = allData[6][4];
         if (allData[7] && allData[7][4]) document.getElementById("twitter-link").href = allData[7][4];
         if (allData[8] && allData[8][4]) document.getElementById("rumble-link").href = allData[8][4];
 
-
+        // Popunjavanje linkova
         const linkSection = document.getElementById("link-section");
-        linkSection.innerHTML = ''; // Clear existing content
-        allData.forEach((row, index) => { // Dodaj index
+        linkSection.innerHTML = '';
+        allData.forEach((row) => {
             const linkText = row[2];
             const targetColumnLetter = row[3];
             if (linkText && targetColumnLetter) {
                 const linkItem = document.createElement("div");
                 linkItem.className = "link-item";
-                linkItem.dataset.columnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase()); // Dodaj data atribut za lakše prepoznavanje
+                linkItem.dataset.columnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
                 const linkDiv = document.createElement("div");
                 linkDiv.className = "link-text";
                 linkDiv.textContent = linkText;
                 linkItem.appendChild(linkDiv);
                 linkItem.addEventListener("click", () => {
                     autoplayEnabled = true;
-                    const colIndex = parseInt(linkItem.dataset.columnIndex); // Uzmi indeks iz data atributa
-                    if (isNaN(colIndex)) {
-                        console.error("Unknown column or invalid index: " + targetColumnLetter);
-                        return;
-                    }
+                    const colIndex = parseInt(linkItem.dataset.columnIndex);
+                    if (isNaN(colIndex)) return;
                     showVideosFromColumn(colIndex);
-                    setActiveLink(linkItem); // Postavi ovaj link kao aktivan
+                    setActiveLink(linkItem);
                     document.getElementById('sidebar').scrollTop = 0;
                 });
                 linkSection.appendChild(linkItem);
             }
         });
 
-        // Inicijalno aktiviranje prvog linka
         const firstLinkItem = linkSection.querySelector('.link-item');
         if (firstLinkItem) {
             setActiveLink(firstLinkItem);
             showVideosFromColumn(parseInt(firstLinkItem.dataset.columnIndex));
         } else {
-            showVideosFromColumn(0); // Fallback ako nema linkova
+            showVideosFromColumn(0);
         }
     }
 });
@@ -633,100 +630,100 @@ function letterToIndex(letter) {
 }
 
 function setActiveLink(linkItem) {
-    if (activeLinkItem) {
-        activeLinkItem.classList.remove('active'); // Ukloni active klasu sa prethodnog
-    }
-    linkItem.classList.add('active'); // Dodaj active klasu trenutnom
-    activeLinkItem = linkItem; // Ažuriraj aktivni link
+    if (activeLinkItem) activeLinkItem.classList.remove('active');
+    linkItem.classList.add('active');
+    activeLinkItem = linkItem;
 }
 
 function showVideosFromColumn(colIndex) {
     const videoSection = document.getElementById("video-section");
     const main = document.getElementById("main");
     videoSection.innerHTML = "";
+    loadedCount = 0;
 
-    const videos = allData
+    currentVideos = allData
         .map(row => {
             const cell = row[colIndex];
             if (!cell || !cell.trim()) return null;
             const [link, thumb] = cell.split("|").map(s => s.trim());
-            // Assuming description is always in the next column
             const descColIndex = colIndex + 1;
             const desc = row[descColIndex] || "";
             return { link, thumb: thumb || "", desc: desc };
         })
         .filter(v => v);
 
-    if (videos.length === 0) {
-        videoSection.innerHTML = "<div style='text-align:center; color:var(--text-color-light); padding: 20px;'>No videos in this section.</div>";
-        main.innerHTML = ""; // Clear main video player
+    if (!currentVideos.length) {
+        videoSection.innerHTML = "<div style='text-align:center; color:var(--text-color-light); padding:20px;'>No videos in this section.</div>";
+        main.innerHTML = "";
         return;
     }
 
-    // Embed the first video
-    const firstVideo = videos[0];
-    embedVideo(firstVideo.link, main, autoplayEnabled, firstVideo.thumb);
+    // Embed first video
+    embedVideo(currentVideos[0].link, main, autoplayEnabled, currentVideos[0].thumb);
 
-    // List all videos in reverse order (newest first if sorted in sheet)
-    [...videos].reverse().forEach(({ link, thumb, desc }) => {
+    // Učitaj prve chunkSize video-itema
+    loadMoreVideos();
+}
+
+// Funkcija za lazy load po chunk-ovima
+function loadMoreVideos() {
+    const videoSection = document.getElementById("video-section");
+    const nextChunk = currentVideos.slice(loadedCount, loadedCount + chunkSize);
+
+    nextChunk.forEach(({ link, thumb, desc }) => {
         const videoItem = document.createElement("div");
         videoItem.className = "video-item";
 
         const thumbnail = document.createElement("img");
-        // Improved thumbnail handling for YouTube
         const youTubeMatch = link.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
         const isYouTube = !!youTubeMatch;
         const isRumble = link.includes("rumble.com");
-        const isCustom = !isYouTube && !isRumble;
 
-        if (isYouTube) {
-            const videoId = youTubeMatch[1];
-            thumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-            thumbnail.alt = "YouTube Thumbnail";
-        } else if (isRumble) {
-            thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Rumble";
-            thumbnail.alt = "Rumble Thumbnail";
-        } else if (isCustom) {
-            thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Video";
-            thumbnail.alt = "Custom Video Thumbnail";
-        }
+        if (isYouTube) thumbnail.src = `https://img.youtube.com/vi/${youTubeMatch[1]}/mqdefault.jpg`;
+        else if (isRumble) thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Rumble";
+        else thumbnail.src = thumb || "https://via.placeholder.com/140x80?text=Video";
 
         const info = document.createElement("div");
         info.className = "video-info";
         const description = document.createElement("div");
         description.className = "video-desc";
-
         const fullText = desc.trim();
-        const shortText = fullText.length > 35 ? fullText.slice(0, 35) + "…" : fullText; // Slightly longer truncation
+        const shortText = fullText.length > 35 ? fullText.slice(0, 35) + "…" : fullText;
         description.textContent = shortText;
-        if (fullText.length > 35) { // Only add tooltip if text is actually truncated
-            description.setAttribute("data-full", fullText);
-        }
-
+        if (fullText.length > 35) description.setAttribute("data-full", fullText);
         info.appendChild(description);
 
         videoItem.appendChild(thumbnail);
         videoItem.appendChild(info);
 
         videoItem.addEventListener("click", () => {
-            embedVideo(link, main, true, thumb);
+            embedVideo(link, document.getElementById("main"), true, thumb);
         });
+
         videoSection.appendChild(videoItem);
     });
+
+    loadedCount += nextChunk.length;
 }
+
+// Scroll event za lazy loading
+document.getElementById("video-section").addEventListener("scroll", () => {
+    const videoSection = document.getElementById("video-section");
+    if(videoSection.scrollTop + videoSection.clientHeight >= videoSection.scrollHeight - 50) {
+        if (loadedCount < currentVideos.length) loadMoreVideos();
+    }
+});
 
 function embedVideo(link, container, autoplay, thumb) {
     const youTubeMatch = link.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
     const isYouTube = !!youTubeMatch;
     const isRumble = link.includes("rumble.com");
-    const isCustom = !isYouTube && !isRumble;
 
     if (isYouTube) {
         const videoId = youTubeMatch[1];
         const autoplayParam = autoplay ? 1 : 0;
         container.innerHTML = `<div class="video-wrapper">
-            <iframe
-                src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1"
+            <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen>
             </iframe>
@@ -734,19 +731,17 @@ function embedVideo(link, container, autoplay, thumb) {
     } else if (isRumble) {
         const rumbleEmbedLink = link.replace('watch?v=', 'embed/').replace('video/', 'embed/');
         container.innerHTML = `<div class="video-wrapper">
-            <iframe
-                src="${rumbleEmbedLink}"
-                allow="autoplay; fullscreen; picture-in-picture"
-                allowfullscreen>
+            <iframe src="${rumbleEmbedLink}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen>
             </iframe>
         </div>`;
-    } else if (isCustom) {
+    } else {
         container.innerHTML = `<div class="video-wrapper">
             <video src="${link}" poster="${thumb}" controls ${autoplay ? "autoplay" : ""}></video>
         </div>`;
     }
 }
 </script>
+
 
 </body>
 </html>
