@@ -191,43 +191,43 @@ header.card img {
     flex-direction: column;
     justify-content: center;
     flex-grow: 1;
+    position: relative; /* Potrebno za pozicioniranje hover teksta */
 }
 
-/* Originalni stil za video-desc - tekst se prelama */
 .video-desc {
     font-size: 13px;
-    color: #666; /* Vraćeno na originalnu boju */
+    color: #666;
     line-height: 1.2;
     word-break: break-word;
-    /* Nema više nowrap, overflow: hidden, text-overflow: ellipsis ovde */
-    /* Tekst će se prelamati prirodno */
-    position: relative; /* Potrebno za tooltip */
-    max-height: 2.4em; /* Ograničenje na 2 linije (1.2 * 2) */
-    overflow: hidden; /* Sakriva višak teksta */
-    /* Dodajemo ellipsis samo vizuelno ako je tekst predugačak za 2 linije */
-    /* U JavaScriptu ćemo dodati ellipsis vizuelno ako je duže od MAX_DESC_LENGTH */
+    /* Ograničenje teksta na 35 karaktera i zadržavanje više redova */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Ograničava na 2 reda, možete podesiti */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 3em; /* Približno visina dva reda (1.2 * 2 = 2.4em, malo više za sigurnost) */
 }
 
-/* Novi stil za tooltip koji se prikazuje na hoveru */
-.video-desc-tooltip {
-    display: none; /* Sakriveno po defaultu */
+.video-desc.hover-text {
     position: absolute;
-    top: 100%; /* Prikazuje se ispod originalnog teksta */
+    top: 0;
     left: 0;
-    z-index: 100;
-    background-color: #333;
-    color: #fff;
-    padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: normal; /* Dozvoljava prelamanje teksta unutar tooltipa */
-    max-width: 250px; /* Ograničava širinu tooltipa */
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    width: auto; /* Da se proširi po potrebi */
+    max-width: 250px; /* Maksimalna širina hover teksta */
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ccc;
+    padding: 8px;
+    border-radius: 5px;
+    z-index: 10; /* Mora biti iznad video klipa */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: block; /* Prikazuje ceo tekst */
+    white-space: normal; /* Omogućava prelamanje teksta */
+    overflow: visible;
+    -webkit-line-clamp: unset; /* Uklanja ograničenje broja redova */
+    word-break: break-word;
+    color: #333;
 }
 
-.video-desc:hover .video-desc-tooltip {
-    display: block; /* Prikazuje se na hoveru */
-}
 
 #sidebar-content-wrapper::-webkit-scrollbar {
     width: 8px;
@@ -287,7 +287,6 @@ header.card img {
     white-space: nowrap; /* Prevent text wrapping */
 }
 
-/* No hover effects as per request */
 </style>
 </head>
 <body>
@@ -348,7 +347,6 @@ const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
-const MAX_DESC_LENGTH = 35; // Maksimalna dužina teksta pre nego što dodamo "..."
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
@@ -439,7 +437,6 @@ Papa.parse(sheetUrl, {
             }
         });
 
-        // Inicijalno učitavanje prve kolone
         resetAndShowVideosFromColumn(0);
         sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
     }
@@ -500,18 +497,51 @@ function loadMoreVideos() {
 
         const description = document.createElement("div");
         description.className = "video-desc";
-        // Ovde sada prikazujemo skraćeni tekst za početni prikaz
-        // i dodajemo tooltip sa punim tekstom
-        if (desc.length > MAX_DESC_LENGTH) {
-            description.textContent = desc.substring(0, MAX_DESC_LENGTH) + '...';
-            // Kreiramo tooltip element i dodajemo ga unutar description div-a
-            const tooltip = document.createElement("span");
-            tooltip.className = "video-desc-tooltip";
-            tooltip.textContent = desc; // Puni tekst za tooltip
-            description.appendChild(tooltip);
-        } else {
-            description.textContent = desc;
-        }
+        // Skraćivanje teksta na 35 karaktera, ali prikazivanje celog na hover
+        const originalDesc = desc;
+        description.textContent = originalDesc.length > 35 ? originalDesc.substring(0, 35) + '...' : originalDesc;
+        description.setAttribute('data-full-text', originalDesc);
+
+        // Event listeneri za hover efekat
+        let hoverTimeout;
+        const hoverElement = document.createElement("div");
+        hoverElement.className = "video-desc hover-text";
+        hoverElement.style.display = 'none'; // Sakrij po defaultu
+
+        description.addEventListener('mouseenter', function() {
+            if (originalDesc.length > 35) {
+                hoverElement.textContent = originalDesc;
+                const rect = description.getBoundingClientRect();
+                // Pozicioniranje hover elementa u odnosu na vidljivi deo viewporta
+                hoverElement.style.top = `${rect.top + window.scrollY}px`;
+                hoverElement.style.left = `${rect.left + window.scrollX}px`;
+                hoverElement.style.display = 'block';
+                document.body.appendChild(hoverElement);
+            }
+        });
+
+        description.addEventListener('mouseleave', function() {
+            clearTimeout(hoverTimeout);
+            // Dodaj malo kašnjenje kako bi se sprečilo treperenje ako miš brzo pređe preko
+            hoverTimeout = setTimeout(() => {
+                hoverElement.style.display = 'none';
+                if (document.body.contains(hoverElement)) {
+                    document.body.removeChild(hoverElement);
+                }
+            }, 100);
+        });
+
+        // Dodajemo i na hover element da se ne sakrije odmah ako se miš prebaci sa description na hoverElement
+        hoverElement.addEventListener('mouseenter', function() {
+            clearTimeout(hoverTimeout);
+        });
+        hoverElement.addEventListener('mouseleave', function() {
+            hoverElement.style.display = 'none';
+            if (document.body.contains(hoverElement)) {
+                document.body.removeChild(hoverElement);
+            }
+        });
+
 
         info.appendChild(description);
         videoItem.appendChild(thumbnail);
@@ -555,30 +585,22 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    // Proverite da li je YT.Player definisan
-    if (typeof YT !== 'undefined' && YT.Player) {
-        new YT.Player(iframe, {
-            events: {
-                'onStateChange': function(event) {
-                    if (event.data === YT.PlayerState.ENDED) {
-                        if (autoplayNextEnabled) {
-                            let nextIndex = videoIndex + 1;
-                            if (nextIndex >= currentVideos.length) nextIndex = 0;
-                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                        } else {
-                            // Ponovi trenutni video ako autoplay nije uključen
-                            //player.seekTo(0); // Ako želite da se vrati na početak
-                            //player.playVideo(); // i ponovo pokrene
-                        }
+    const player = new YT.Player(iframe, {
+        events: {
+            'onStateChange': function(event) {
+                if (event.data === YT.PlayerState.ENDED) {
+                    if (autoplayNextEnabled) {
+                        let nextIndex = videoIndex + 1;
+                        if (nextIndex >= currentVideos.length) nextIndex = 0;
+                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                    } else {
+                        player.seekTo(0);
+                        player.playVideo();
                     }
                 }
             }
-        });
-    } else {
-        // Fallback ako YT.Player nije dostupan odmah (npr. skripta se još učitava)
-        // Ovo može biti problematično, ali za testiranje je OK
-        console.warn("YouTube IFrame API player not ready. Autoplay functionality for ended videos might be limited.");
-    }
+        }
+    });
 }
 
 // Load YouTube IFrame API
