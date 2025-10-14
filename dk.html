@@ -343,7 +343,278 @@ header.card img {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-// ... (OVDE IDE CIJELI JS KOD KAO ŠTO SI IMAO) ...
+
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
+
+let allData = [];
+let autoplayEnabled = false;
+let autoplayNextEnabled = false;
+let currentVideos = [];
+let loadedVideoCount = 0;
+const VIDEOS_PER_LOAD = 10;
+let selectedColumnIndex = 0;
+let currentActiveLink = null;
+let currentVideoIndex = 0;
+
+const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
+const videoSection = document.getElementById("video-section");
+const videoLoadingIndicator = document.getElementById("video-loading-indicator");
+const mainVideoPlayer = document.getElementById("main");
+const autoplayNextCheckbox = document.getElementById("autoplay-next");
+const playNextButton = document.getElementById("play-next");
+const footerButton1 = document.getElementById("footer-button-1");
+const footerButton2 = document.getElementById("footer-button-2");
+
+
+autoplayNextCheckbox.addEventListener("change", () => {
+    autoplayNextEnabled = autoplayNextCheckbox.checked;
+});
+
+playNextButton.addEventListener("click", () => {
+    if (!currentVideos.length) return;
+    let nextIndex = currentVideoIndex + 1;
+    if (nextIndex >= currentVideos.length) nextIndex = 0;
+    embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+});
+
+Papa.parse(sheetUrl, {
+    download: true,
+    header: false,
+    complete: function(results) {
+        allData = results.data.filter(row => row[0]);
+        if (allData.length === 0) return;
+
+        document.getElementById("profile-img").src = allData[0][4];
+        document.getElementById("profile-name").textContent = allData[1][4];
+        document.getElementById("profile-motto").textContent = allData[2][4];
+        document.getElementById("footer-text").textContent = allData[3][4];
+        document.getElementById("content-title").textContent = allData[4][4];
+        document.getElementById("video-title").textContent = allData[5][4];
+
+        // Process footer buttons from E7 and E8
+        if (allData[6] && allData[6][4]) { // E7
+            const [text, link] = allData[6][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton1.textContent = text;
+                footerButton1.href = link;
+                footerButton1.style.display = 'inline-flex';
+            }
+        }
+        if (allData[7] && allData[7][4]) { // E8
+            const [text, link] = allData[7][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton2.textContent = text;
+                footerButton2.href = link;
+                footerButton2.style.display = 'inline-flex';
+            }
+        }
+
+
+        const linkSection = document.getElementById("link-section");
+
+        allData.forEach(row => {
+            const linkText = row[2];
+            const targetColumnLetter = row[3];
+
+            if (linkText && targetColumnLetter) {
+                const linkItem = document.createElement("div");
+                linkItem.className = "link-item";
+
+                const linkDiv = document.createElement("div");
+                linkDiv.className = "link-text";
+                linkDiv.textContent = linkText;
+
+                linkItem.appendChild(linkDiv);
+
+                linkItem.addEventListener("click", () => {
+                    if (currentActiveLink) currentActiveLink.classList.remove("active");
+                    currentActiveLink = linkItem;
+                    currentActiveLink.classList.add("active");
+
+                    autoplayEnabled = true;
+                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+                    if (colIndex === null) {
+                        alert("Nepoznata kolona: " + targetColumnLetter);
+                        return;
+                    }
+                    selectedColumnIndex = colIndex;
+                    resetAndShowVideosFromColumn(colIndex);
+                });
+
+                linkSection.appendChild(linkItem);
+            }
+        });
+
+        resetAndShowVideosFromColumn(0);
+        sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
+    }
+});
+
+function letterToIndex(letter) {
+    if (!/^[A-Z]+$/.test(letter)) return null;
+    let index = 0;
+    for (let i = 0; i < letter.length; i++) {
+        index = index * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return index - 1;
+}
+
+function resetAndShowVideosFromColumn(colIndex) {
+    videoSection.innerHTML = "";
+    loadedVideoCount = 0;
+
+    currentVideos = allData
+        .map(row => ({ link: row[colIndex], desc: row[colIndex + 1] || "" }))
+        .filter(v => v.link && v.link.trim());
+
+    currentVideos.reverse();
+
+    if (currentVideos.length === 0) {
+        videoSection.innerHTML = "<div style='text-align:center; color:#666;'>Nema videa u ovoj sekciji</div>";
+        mainVideoPlayer.innerHTML = "";
+        return;
+    }
+
+    currentVideoIndex = 0;
+    embedVideo(currentVideos[0].link, mainVideoPlayer, autoplayEnabled, 0);
+    loadMoreVideos();
+}
+
+function loadMoreVideos() {
+    if (loadedVideoCount >= currentVideos.length) return;
+    videoLoadingIndicator.style.display = 'block';
+
+    const startIndex = loadedVideoCount;
+    const endIndex = Math.min(startIndex + VIDEOS_PER_LOAD, currentVideos.length);
+    const fragment = document.createDocumentFragment();
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const { link, desc } = currentVideos[i];
+        const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (!match) continue;
+        const videoId = match[1];
+
+        const videoItem = document.createElement("div");
+        videoItem.className = "video-item";
+
+        const thumbnail = document.createElement("img");
+        thumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+
+        const info = document.createElement("div");
+        info.className = "video-info";
+
+        const description = document.createElement("div");
+        description.className = "video-desc";
+        // Skraćivanje teksta na 35 karaktera, ali prikazivanje celog na hover
+        const originalDesc = desc;
+        description.textContent = originalDesc.length > 35 ? originalDesc.substring(0, 35) + '...' : originalDesc;
+        description.setAttribute('data-full-text', originalDesc);
+
+        // Event listeneri za hover efekat
+        let hoverTimeout;
+        const hoverElement = document.createElement("div");
+        hoverElement.className = "video-desc hover-text";
+        hoverElement.style.display = 'none'; // Sakrij po defaultu
+
+        description.addEventListener('mouseenter', function() {
+            if (originalDesc.length > 35) {
+                hoverElement.textContent = originalDesc;
+                const rect = description.getBoundingClientRect();
+                // Pozicioniranje hover elementa u odnosu na vidljivi deo viewporta
+                hoverElement.style.top = `${rect.top + window.scrollY}px`;
+                hoverElement.style.left = `${rect.left + window.scrollX}px`;
+                hoverElement.style.display = 'block';
+                document.body.appendChild(hoverElement);
+            }
+        });
+
+        description.addEventListener('mouseleave', function() {
+            clearTimeout(hoverTimeout);
+            // Dodaj malo kašnjenje kako bi se sprečilo treperenje ako miš brzo pređe preko
+            hoverTimeout = setTimeout(() => {
+                hoverElement.style.display = 'none';
+                if (document.body.contains(hoverElement)) {
+                    document.body.removeChild(hoverElement);
+                }
+            }, 100);
+        });
+
+        // Dodajemo i na hover element da se ne sakrije odmah ako se miš prebaci sa description na hoverElement
+        hoverElement.addEventListener('mouseenter', function() {
+            clearTimeout(hoverTimeout);
+        });
+        hoverElement.addEventListener('mouseleave', function() {
+            hoverElement.style.display = 'none';
+            if (document.body.contains(hoverElement)) {
+                document.body.removeChild(hoverElement);
+            }
+        });
+
+
+        info.appendChild(description);
+        videoItem.appendChild(thumbnail);
+        videoItem.appendChild(info);
+
+        videoItem.addEventListener("click", () => {
+            embedVideo(link, mainVideoPlayer, true, i);
+        });
+
+        fragment.appendChild(videoItem);
+    }
+
+    videoSection.appendChild(fragment);
+    loadedVideoCount = endIndex;
+    videoLoadingIndicator.style.display = 'none';
+}
+
+function handleVideoScroll() {
+    const { scrollTop, scrollHeight, clientHeight } = sidebarContentWrapper;
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+        loadMoreVideos();
+    }
+}
+
+function embedVideo(link, container, autoplay, videoIndex) {
+    const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (!match) return;
+    const videoId = match[1];
+    const autoplayParam = autoplay ? 1 : 0;
+
+    currentVideoIndex = videoIndex;
+
+    container.innerHTML = `<div class="video-wrapper" style="padding-bottom:56.25%">
+        <iframe id="video-iframe"
+            src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1&enablejsapi=1&rel=0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay"
+            allowfullscreen>
+        </iframe>
+    </div>`;
+
+    const iframe = container.querySelector('iframe');
+    if (!iframe) return;
+
+    const player = new YT.Player(iframe, {
+        events: {
+            'onStateChange': function(event) {
+                if (event.data === YT.PlayerState.ENDED) {
+                    if (autoplayNextEnabled) {
+                        let nextIndex = videoIndex + 1;
+                        if (nextIndex >= currentVideos.length) nextIndex = 0;
+                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                    } else {
+                        player.seekTo(0);
+                        player.playVideo();
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load YouTube IFrame API
+let tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+document.body.appendChild(tag);
 </script>
 
 </body>
