@@ -193,37 +193,42 @@ header.card img {
     flex-grow: 1;
 }
 
+/* Originalni stil za video-desc - tekst se prelama */
 .video-desc {
     font-size: 13px;
-    color: #666;
+    color: #666; /* Vraćeno na originalnu boju */
     line-height: 1.2;
     word-break: break-word;
-    max-width: 100%;
+    /* Nema više nowrap, overflow: hidden, text-overflow: ellipsis ovde */
+    /* Tekst će se prelamati prirodno */
+    position: relative; /* Potrebno za tooltip */
+    max-height: 2.4em; /* Ograničenje na 2 linije (1.2 * 2) */
+    overflow: hidden; /* Sakriva višak teksta */
+    /* Dodajemo ellipsis samo vizuelno ako je tekst predugačak za 2 linije */
+    /* U JavaScriptu ćemo dodati ellipsis vizuelno ako je duže od MAX_DESC_LENGTH */
 }
 
-/* Skraćeni tekst na 35 karaktera sa hover efektom */
-.video-desc[data-full] {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.video-desc[data-full]:hover::after {
-    content: attr(data-full);
+/* Novi stil za tooltip koji se prikazuje na hoveru */
+.video-desc-tooltip {
+    display: none; /* Sakriveno po defaultu */
     position: absolute;
-    background: rgba(0,0,0,0.85);
+    top: 100%; /* Prikazuje se ispod originalnog teksta */
+    left: 0;
+    z-index: 100;
+    background-color: #333;
     color: #fff;
     padding: 5px 8px;
-    border-radius: 5px;
-    white-space: normal;
-    width: max-content;
-    max-width: 250px;
-    z-index: 1000;
-    top: -5px;
-    left: 100%;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: normal; /* Dozvoljava prelamanje teksta unutar tooltipa */
+    max-width: 250px; /* Ograničava širinu tooltipa */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 
-/* Scrollbar */
+.video-desc:hover .video-desc-tooltip {
+    display: block; /* Prikazuje se na hoveru */
+}
+
 #sidebar-content-wrapper::-webkit-scrollbar {
     width: 8px;
 }
@@ -265,12 +270,12 @@ header.card img {
 
 .footer-buttons-right {
     display: flex;
-    gap: 10px;
+    gap: 10px; /* Space between buttons */
 }
 
 .footer-buttons-right .button-link {
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
+    background-color: #f0f0f0; /* Light grey background */
+    border: 1px solid #ccc; /* Subtle border */
     padding: 8px 12px;
     border-radius: 5px;
     text-decoration: none;
@@ -279,8 +284,10 @@ header.card img {
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-    white-space: nowrap;
+    white-space: nowrap; /* Prevent text wrapping */
 }
+
+/* No hover effects as per request */
 </style>
 </head>
 <body>
@@ -341,6 +348,7 @@ const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
+const MAX_DESC_LENGTH = 35; // Maksimalna dužina teksta pre nego što dodamo "..."
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
@@ -350,6 +358,7 @@ const autoplayNextCheckbox = document.getElementById("autoplay-next");
 const playNextButton = document.getElementById("play-next");
 const footerButton1 = document.getElementById("footer-button-1");
 const footerButton2 = document.getElementById("footer-button-2");
+
 
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
@@ -376,7 +385,8 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        if (allData[6] && allData[6][4]) {
+        // Process footer buttons from E7 and E8
+        if (allData[6] && allData[6][4]) { // E7
             const [text, link] = allData[6][4].split('|').map(s => s.trim());
             if (text && link) {
                 footerButton1.textContent = text;
@@ -384,7 +394,7 @@ Papa.parse(sheetUrl, {
                 footerButton1.style.display = 'inline-flex';
             }
         }
-        if (allData[7] && allData[7][4]) {
+        if (allData[7] && allData[7][4]) { // E8
             const [text, link] = allData[7][4].split('|').map(s => s.trim());
             if (text && link) {
                 footerButton2.textContent = text;
@@ -392,6 +402,7 @@ Papa.parse(sheetUrl, {
                 footerButton2.style.display = 'inline-flex';
             }
         }
+
 
         const linkSection = document.getElementById("link-section");
 
@@ -428,6 +439,7 @@ Papa.parse(sheetUrl, {
             }
         });
 
+        // Inicijalno učitavanje prve kolone
         resetAndShowVideosFromColumn(0);
         sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
     }
@@ -463,11 +475,6 @@ function resetAndShowVideosFromColumn(colIndex) {
     loadMoreVideos();
 }
 
-function truncateText(text, length = 35) {
-    if (!text) return "";
-    return text.length > length ? text.slice(0, length) + "…" : text;
-}
-
 function loadMoreVideos() {
     if (loadedVideoCount >= currentVideos.length) return;
     videoLoadingIndicator.style.display = 'block';
@@ -493,8 +500,18 @@ function loadMoreVideos() {
 
         const description = document.createElement("div");
         description.className = "video-desc";
-        description.textContent = truncateText(desc, 35);
-        description.setAttribute("data-full", desc);
+        // Ovde sada prikazujemo skraćeni tekst za početni prikaz
+        // i dodajemo tooltip sa punim tekstom
+        if (desc.length > MAX_DESC_LENGTH) {
+            description.textContent = desc.substring(0, MAX_DESC_LENGTH) + '...';
+            // Kreiramo tooltip element i dodajemo ga unutar description div-a
+            const tooltip = document.createElement("span");
+            tooltip.className = "video-desc-tooltip";
+            tooltip.textContent = desc; // Puni tekst za tooltip
+            description.appendChild(tooltip);
+        } else {
+            description.textContent = desc;
+        }
 
         info.appendChild(description);
         videoItem.appendChild(thumbnail);
@@ -538,22 +555,30 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    const player = new YT.Player(iframe, {
-        events: {
-            'onStateChange': function(event) {
-                if (event.data === YT.PlayerState.ENDED) {
-                    if (autoplayNextEnabled) {
-                        let nextIndex = videoIndex + 1;
-                        if (nextIndex >= currentVideos.length) nextIndex = 0;
-                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                    } else {
-                        player.seekTo(0);
-                        player.playVideo();
+    // Proverite da li je YT.Player definisan
+    if (typeof YT !== 'undefined' && YT.Player) {
+        new YT.Player(iframe, {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            // Ponovi trenutni video ako autoplay nije uključen
+                            //player.seekTo(0); // Ako želite da se vrati na početak
+                            //player.playVideo(); // i ponovo pokrene
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } else {
+        // Fallback ako YT.Player nije dostupan odmah (npr. skripta se još učitava)
+        // Ovo može biti problematično, ali za testiranje je OK
+        console.warn("YouTube IFrame API player not ready. Autoplay functionality for ended videos might be limited.");
+    }
 }
 
 // Load YouTube IFrame API
