@@ -38,7 +38,7 @@ body {
     object-fit: contain;
     fill: currentColor;
 }
- 
+
 .page-wrapper {
     width: 1600px;
     display: flex;
@@ -313,6 +313,65 @@ header.card img {
     gap: 10px;
 }
 
+/* Overlay for input */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.input-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 500px;
+}
+
+.input-card h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.input-card input[type="text"] {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.input-card button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s ease;
+}
+
+.input-card button:hover {
+    background-color: #0056b3;
+}
+
+/* Hide content until sheet is loaded */
+.page-wrapper {
+    display: none; /* Hide by default */
+}
+
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     body {
@@ -402,13 +461,16 @@ header.card img {
 </head>
 <body>
 
-<div id="sheet-prompt" style="text-align:center; margin:20px;">
-    <label for="sheet-url">Unesi Google Sheet CSV link:</label>
-    <input type="text" id="sheet-url" style="width: 60%;">
-    <button id="load-sheet">Učitaj</button>
+<div class="overlay" id="sheet-input-overlay">
+    <div class="input-card">
+        <h2>Enter Google Sheet Public CSV URL</h2>
+        <input type="text" id="sheet-url-input" placeholder="e.g., https://docs.google.com/spreadsheets/d/.../pub?output=csv">
+        <button id="load-sheet-button">Load Sheet</button>
+        <p style="color:red; font-size:14px;" id="error-message"></p>
+    </div>
 </div>
-    
-<div class="page-wrapper">
+
+<div class="page-wrapper" id="page-content">
 
     <aside class="sidebar card">
         <div id="sidebar-content-wrapper">
@@ -422,7 +484,7 @@ header.card img {
 
     <div class="right-column">
         <header class="card">
-            <img id="profile-img">
+            <img id="profile-img" src="">
             <div class="header-texts">
                 <span class="name" id="profile-name"></span>
                 <span class="motto" id="profile-motto"></span>
@@ -453,8 +515,6 @@ header.card img {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
-const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
-
 let allData = [];
 let autoplayEnabled = false;
 let autoplayNextEnabled = false;
@@ -464,6 +524,13 @@ const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
+let currentSheetUrl = "";
+
+const sheetInputOverlay = document.getElementById("sheet-input-overlay");
+const sheetUrlInput = document.getElementById("sheet-url-input");
+const loadSheetButton = document.getElementById("load-sheet-button");
+const errorMessage = document.getElementById("error-message");
+const pageContent = document.getElementById("page-content");
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
@@ -474,20 +541,14 @@ const playNextButton = document.getElementById("play-next");
 const footerButton1 = document.getElementById("footer-button-1");
 const footerButton2 = document.getElementById("footer-button-2");
 
-let allData = [];
-let autoplayEnabled = false;
-let autoplayNextEnabled = false;
-let currentVideos = [];
-let loadedVideoCount = 0;
-const VIDEOS_PER_LOAD = 10;
-let selectedColumnIndex = 0;
-let currentActiveLink = null;
-let currentVideoIndex = 0;
+// Initial state: page content is hidden, overlay is shown
+pageContent.style.display = 'none';
+sheetInputOverlay.style.display = 'flex';
 
-// Checkbox i Play Next
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
 });
+
 playNextButton.addEventListener("click", () => {
     if (!currentVideos.length) return;
     let nextIndex = currentVideoIndex + 1;
@@ -495,20 +556,37 @@ playNextButton.addEventListener("click", () => {
     embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
 });
 
-// Učitavanje sheet-a kada korisnik unese link
-document.getElementById("load-sheet").addEventListener("click", () => {
-    const url = document.getElementById("sheet-url").value.trim();
-    if (!url) return alert("Unesi validan link do CSV sheet-a!");
+loadSheetButton.addEventListener("click", () => {
+    const url = sheetUrlInput.value.trim();
+    if (!url) {
+        errorMessage.textContent = "Please enter a Google Sheet URL.";
+        return;
+    }
+    if (!url.includes("docs.google.com/spreadsheets/") || !url.includes("output=csv")) {
+        errorMessage.textContent = "Invalid URL. Please ensure it's a public Google Sheet CSV export URL.";
+        return;
+    }
+    currentSheetUrl = url;
+    errorMessage.textContent = "";
+    loadDataFromSheet(currentSheetUrl);
+});
 
+function loadDataFromSheet(url) {
     Papa.parse(url, {
         download: true,
         header: false,
         complete: function(results) {
             allData = results.data.filter(row => row[0]);
             if (allData.length === 0) {
-                alert("Sheet je prazan ili nije validan!");
+                errorMessage.textContent = "No data found in the provided sheet.";
+                pageContent.style.display = 'none';
+                sheetInputOverlay.style.display = 'flex';
                 return;
             }
+
+            // Hide overlay and show content
+            sheetInputOverlay.style.display = 'none';
+            pageContent.style.display = 'flex';
 
             document.getElementById("profile-img").src = allData[0][4];
             document.getElementById("profile-name").textContent = allData[1][4];
@@ -524,6 +602,8 @@ document.getElementById("load-sheet").addEventListener("click", () => {
                     footerButton1.href = link;
                     footerButton1.style.display = 'inline-flex';
                 }
+            } else {
+                footerButton1.style.display = 'none';
             }
             if (allData[7] && allData[7][4]) {
                 const [text, link] = allData[7][4].split('|').map(s => s.trim());
@@ -532,14 +612,17 @@ document.getElementById("load-sheet").addEventListener("click", () => {
                     footerButton2.href = link;
                     footerButton2.style.display = 'inline-flex';
                 }
+            } else {
+                footerButton2.style.display = 'none';
             }
 
-            // Kreiranje link sekcije
             const linkSection = document.getElementById("link-section");
-            linkSection.innerHTML = ""; // reset
+            linkSection.innerHTML = ""; // Clear previous links
+
             allData.forEach(row => {
                 const linkText = row[2];
                 const targetColumnLetter = row[3];
+
                 if (linkText && targetColumnLetter) {
                     const linkItem = document.createElement("div");
                     linkItem.className = "link-item";
@@ -569,14 +652,27 @@ document.getElementById("load-sheet").addEventListener("click", () => {
                 }
             });
 
-            resetAndShowVideosFromColumn(0);
-            sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
+            // Set the first link as active if available, or just load videos from column 0
+            const firstLinkItem = linkSection.querySelector('.link-item');
+            if (firstLinkItem) {
+                currentActiveLink = firstLinkItem;
+                currentActiveLink.classList.add("active");
+                const targetColumnLetter = allData.find(row => row[2] === firstLinkItem.querySelector('.link-text').textContent)[3];
+                selectedColumnIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+            } else {
+                selectedColumnIndex = 0; // Default to column 0 if no links are defined
+            }
 
-            // Sakrij prompt
-            document.getElementById("sheet-prompt").style.display = "none";
+            resetAndShowVideosFromColumn(selectedColumnIndex);
+            sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
+        },
+        error: function(err) {
+            errorMessage.textContent = `Failed to load sheet: ${err.message}. Please check the URL and sheet's public access.`;
+            pageContent.style.display = 'none';
+            sheetInputOverlay.style.display = 'flex';
         }
     });
-});
+}
 
 function letterToIndex(letter) {
     if (!/^[A-Z]+$/.test(letter)) return null;
@@ -598,8 +694,8 @@ function resetAndShowVideosFromColumn(colIndex) {
     currentVideos.reverse();
 
     if (currentVideos.length === 0) {
-        videoSection.innerHTML = "<div style='text-align:center; color:#666;'>Nema videa u ovoj sekciji</div>";
-        mainVideoPlayer.innerHTML = "";
+        videoSection.innerHTML = "<div style='text-align:center; color:#666; padding: 20px;'>Nema videa u ovoj sekciji</div>";
+        mainVideoPlayer.innerHTML = "<div style='text-align:center; color:#ccc; padding: 50px;'>No video selected.</div>";
         return;
     }
 
@@ -642,10 +738,10 @@ function loadMoreVideos() {
         hoverElement.className = "video-desc hover-text";
         hoverElement.style.display = 'none';
 
-        description.addEventListener('mouseenter', function() {
+        description.addEventListener('mouseenter', function(e) {
             if (originalDesc.length > 35) {
                 hoverElement.textContent = originalDesc;
-                const rect = description.getBoundingClientRect();
+                const rect = e.target.getBoundingClientRect();
                 hoverElement.style.top = `${rect.top + window.scrollY}px`;
                 hoverElement.style.left = `${rect.left + window.scrollX}px`;
                 hoverElement.style.display = 'block';
@@ -715,22 +811,30 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    const player = new YT.Player(iframe, {
-        events: {
-            'onStateChange': function(event) {
-                if (event.data === YT.PlayerState.ENDED) {
-                    if (autoplayNextEnabled) {
-                        let nextIndex = videoIndex + 1;
-                        if (nextIndex >= currentVideos.length) nextIndex = 0;
-                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                    } else {
-                        player.seekTo(0);
-                        player.playVideo();
+    // The YouTube IFrame API expects an element ID, not a direct iframe element.
+    // We need to ensure the iframe has an ID and then pass that ID to the YT.Player constructor.
+    // Since we are replacing the innerHTML, the ID needs to be unique if multiple players could exist,
+    // but for a single main player, a static ID is fine.
+    iframe.onload = () => { // Ensure iframe is loaded before trying to create Player
+        new YT.Player('video-iframe', {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            // Loop current video if autoplay next is off
+                            const player = event.target;
+                            player.seekTo(0);
+                            player.playVideo();
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
 }
 
 // Load YouTube IFrame API
