@@ -245,10 +245,10 @@ header.card img {
 .footer-buttons a {
     text-decoration: none;
     padding: 6px 12px;
-    border-radius: 6px;
     background: #007bff;
     color: #fff;
-    font-weight: bold;
+    border-radius: 6px;
+    font-size: 14px;
     transition: background 0.2s;
 }
 .footer-buttons a:hover {
@@ -290,8 +290,10 @@ header.card img {
                     <label for="autoplay-next">Autoplay next</label>
                     <button id="play-next">Play Next</button>
                 </div>
+                <div class="footer-buttons" id="footer-buttons">
+                    <!-- Dugmad iz E7 i E8 će biti ovde -->
+                </div>
                 <span class="footer-text-center" id="footer-text"></span>
-                <div class="footer-buttons" id="footer-buttons"></div>
             </div>
         </footer>
     </div>
@@ -345,20 +347,22 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        // Dodavanje dugmadi u footer iz E7 i E8
-        const buttonData = [
-            {name: allData[6][4], link: allData[6][5]}, // E7 i F7
-            {name: allData[7][4], link: allData[7][5]}  // E8 i F8
-        ];
-        buttonData.forEach(item => {
-            if(item.name && item.link) {
-                const btn = document.createElement("a");
-                btn.href = item.link;
-                btn.target = "_blank";
-                btn.textContent = item.name;
-                footerButtonsContainer.appendChild(btn);
-            }
-        });
+        // Dugmad iz E7 i E8
+        const button1Text = allData[6][4] || "Button 1";
+        const button2Text = allData[7][4] || "Button 2";
+
+        const button1 = document.createElement("a");
+        button1.href = allData[6][5] || "#";
+        button1.target = "_blank";
+        button1.textContent = button1Text;
+
+        const button2 = document.createElement("a");
+        button2.href = allData[7][5] || "#";
+        button2.target = "_blank";
+        button2.textContent = button2Text;
+
+        footerButtonsContainer.appendChild(button1);
+        footerButtonsContainer.appendChild(button2);
 
         const linkSection = document.getElementById("link-section");
 
