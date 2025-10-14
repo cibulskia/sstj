@@ -215,31 +215,28 @@ header.card img {
     font-size: 14px;
 }
 
-.footer-left-buttons {
+.footer-checkbox-wrapper {
+    margin-left: auto;
     display: flex;
-    gap: 10px;
-}
-
-.footer-left-buttons a {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 6px;
-    background-color: #007bff;
-    color: #fff;
-    text-decoration: none;
-    font-size: 14px;
-    transition: background-color 0.2s;
-}
-
-.footer-left-buttons a:hover {
-    background-color: #0056b3;
-}
-
-.footer-center-text {
-    flex-grow: 1;
-    text-align: center;
+    align-items: center;
     font-size: 14px;
     color: #333;
+}
+
+.footer-checkbox-wrapper input {
+    margin-right: 5px;
+}
+
+.footer-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-text-center {
+    text-align: center;
+    flex-grow: 1;
 }
 </style>
 </head>
@@ -270,9 +267,15 @@ header.card img {
             <div id="main"></div>
         </main>
 
-        <footer class="card" style="display:flex; align-items:center; gap:10px; padding:0 15px;">
-            <div class="footer-left-buttons" id="footer-buttons"></div>
-            <div class="footer-center-text" id="footer-text"></div>
+        <footer class="card">
+            <div class="footer-container">
+                <button id="play-next" style="margin-right:10px;">Play Next</button>
+                <span class="footer-text-center" id="footer-text"></span>
+                <div class="footer-checkbox-wrapper">
+                    <input type="checkbox" id="autoplay-next">
+                    <label for="autoplay-next">Autoplay next</label>
+                </div>
+            </div>
         </footer>
     </div>
 
@@ -290,11 +293,25 @@ let loadedVideoCount = 0;
 const VIDEOS_PER_LOAD = 10;
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
+let currentVideoIndex = 0;
 
 const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
 const videoSection = document.getElementById("video-section");
 const videoLoadingIndicator = document.getElementById("video-loading-indicator");
 const mainVideoPlayer = document.getElementById("main");
+const autoplayNextCheckbox = document.getElementById("autoplay-next");
+const playNextButton = document.getElementById("play-next");
+
+autoplayNextCheckbox.addEventListener("change", () => {
+    autoplayNextEnabled = autoplayNextCheckbox.checked;
+});
+
+playNextButton.addEventListener("click", () => {
+    if (!currentVideos.length) return;
+    let nextIndex = currentVideoIndex + 1;
+    if (nextIndex >= currentVideos.length) nextIndex = 0;
+    embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+});
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -309,22 +326,6 @@ Papa.parse(sheetUrl, {
         document.getElementById("footer-text").textContent = allData[3][4];
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
-
-        // Dodavanje dugmadi u footer (E7 i E8)
-        const footerButtonsDiv = document.getElementById("footer-buttons");
-        const e7 = allData[6][4]; // natpis | link
-        const e8 = allData[7][4];
-
-        [e7, e8].forEach(item => {
-            if(item && item.includes("|")) {
-                const [label, link] = item.split("|").map(s => s.trim());
-                const a = document.createElement("a");
-                a.href = link;
-                a.target = "_blank";
-                a.textContent = label;
-                footerButtonsDiv.appendChild(a);
-            }
-        });
 
         const linkSection = document.getElementById("link-section");
 
@@ -391,6 +392,7 @@ function resetAndShowVideosFromColumn(colIndex) {
         return;
     }
 
+    currentVideoIndex = 0;
     embedVideo(currentVideos[0].link, mainVideoPlayer, autoplayEnabled, 0);
     loadMoreVideos();
 }
@@ -450,6 +452,8 @@ function embedVideo(link, container, autoplay, videoIndex) {
     if (!match) return;
     const videoId = match[1];
     const autoplayParam = autoplay ? 1 : 0;
+
+    currentVideoIndex = videoIndex;
 
     container.innerHTML = `<div class="video-wrapper" style="padding-bottom:56.25%">
         <iframe id="video-iframe"
