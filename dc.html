@@ -42,7 +42,6 @@ body {
     align-items: flex-start;
 }
 
-/* === SIDEBAR === */
 .sidebar.card {
     width: 300px;
     display: flex;
@@ -61,7 +60,6 @@ body {
     background: #fafafa;
 }
 
-/* === DESNA STRANA === */
 .right-column {
     flex-grow: 1;
     display: flex;
@@ -121,7 +119,6 @@ header.card img {
     width: 100%;
 }
 
-/* === Wrapper sa aspect ratio === */
 .video-wrapper {
     position: relative;
     width: 100%;
@@ -137,7 +134,6 @@ header.card img {
     height: 100%;
 }
 
-/* === LINKOVI I VIDEO LISTA === */
 .section-title {
     font-size: 16px;
     font-weight: bold;
@@ -197,7 +193,6 @@ header.card img {
     word-break: break-word;
 }
 
-/* Scrollbar */
 #sidebar::-webkit-scrollbar {
     width: 8px;
 }
@@ -211,7 +206,6 @@ header.card img {
 
 <div class="page-wrapper">
 
-    <!-- Leva sekcija -->
     <aside class="sidebar card">
         <div id="sidebar">
             <div class="section-title" id="content-title"></div>
@@ -221,7 +215,6 @@ header.card img {
         </div>
     </aside>
 
-    <!-- Desna kolona -->
     <div class="right-column">
         <header class="card">
             <img id="profile-img">
@@ -250,9 +243,11 @@ const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_
 
 let allData = [];
 let autoplayEnabled = false;
-let videoBatch = 10; // koliko videa učitava po batch-u
-let currentVideoIndex = 0;
-let currentColIndex = 0;
+let linkBatchSize = 20; // koliko linkova učitavamo po batch-u
+let linkIndex = 0;      // indeks poslednjeg učitanog linka
+let linkColumn = 0;     // trenutno aktivna kolona
+
+const linkSection = document.getElementById("link-section");
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -261,50 +256,15 @@ Papa.parse(sheetUrl, {
         allData = results.data.filter(row => row[0]);
         if (allData.length === 0) return;
 
-        // Profil i tekstovi
-        document.getElementById("profile-img").src = allData[0][4] || "";
-        document.getElementById("profile-name").textContent = allData[1][4] || "";
-        document.getElementById("profile-motto").textContent = allData[2][4] || "";
-        document.getElementById("footer-text").textContent = allData[3][4] || "";
-        document.getElementById("content-title").textContent = allData[4][4] || "";
-        document.getElementById("video-title").textContent = allData[5][4] || "";
+        document.getElementById("profile-img").src = allData[0][4];
+        document.getElementById("profile-name").textContent = allData[1][4];
+        document.getElementById("profile-motto").textContent = allData[2][4];
+        document.getElementById("footer-text").textContent = allData[3][4];
+        document.getElementById("content-title").textContent = allData[4][4];
+        document.getElementById("video-title").textContent = allData[5][4];
 
-        const linkSection = document.getElementById("link-section");
-
-        allData.forEach(row => {
-            const linkText = row[2];
-            const targetColumnLetter = row[3];
-
-            if (linkText && targetColumnLetter) {
-                const linkItem = document.createElement("div");
-                linkItem.className = "link-item";
-
-                const linkDiv = document.createElement("div");
-                linkDiv.className = "link-text";
-                linkDiv.textContent = linkText;
-
-                linkItem.appendChild(linkDiv);
-
-                linkItem.addEventListener("click", () => {
-                    autoplayEnabled = true;
-                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
-                    if (colIndex === null) {
-                        alert("Nepoznata kolona: " + targetColumnLetter);
-                        return;
-                    }
-                    currentColIndex = colIndex;
-                    currentVideoIndex = 0;
-                    document.getElementById("video-section").innerHTML = "";
-                    loadMoreVideos();
-                });
-
-                linkSection.appendChild(linkItem);
-            }
-        });
-
-        // Prikaz prvog linka po defaultu
-        currentColIndex = 0;
-        loadMoreVideos();
+        initLinks();
+        showVideosFromColumn(0);
     }
 });
 
@@ -317,12 +277,74 @@ function letterToIndex(letter) {
     return index - 1;
 }
 
-function loadMoreVideos() {
+// === INIT LINKOVI ===
+function initLinks() {
+    linkIndex = 0;
+    linkColumn = 0;
+    linkSection.innerHTML = "";
+
+    allData.forEach(row => {
+        const linkText = row[2]; // kolona C
+        const targetColumnLetter = row[3]; // kolona D
+
+        if (linkText && targetColumnLetter) {
+            const linkItem = document.createElement("div");
+            linkItem.className = "link-item";
+            linkItem.dataset.column = targetColumnLetter.trim().toUpperCase();
+
+            const linkDiv = document.createElement("div");
+            linkDiv.className = "link-text";
+            linkDiv.textContent = linkText;
+
+            linkItem.appendChild(linkDiv);
+
+            linkItem.addEventListener("click", () => {
+                autoplayEnabled = true;
+                linkColumn = letterToIndex(targetColumnLetter.trim().toUpperCase());
+                if (linkColumn === null) {
+                    alert("Nepoznata kolona: " + targetColumnLetter);
+                    return;
+                }
+                linkIndex = 0;
+                linkSection.innerHTML = "";
+                loadLinkBatch();
+                showVideosFromColumn(linkColumn);
+            });
+
+            linkSection.appendChild(linkItem);
+        }
+    });
+
+    // inicijalno učitavanje batch-a
+    loadLinkBatch();
+}
+
+// === FUNKCIJA ZA LAZY LOADING LINKOVA ===
+function loadLinkBatch() {
+    const items = Array.from(linkSection.children);
+    let count = 0;
+    for (let i = linkIndex; i < items.length && count < linkBatchSize; i++) {
+        items[i].style.display = "flex"; // prikazujemo batch
+        count++;
+        linkIndex = i + 1;
+    }
+}
+
+// === SCROLL EVENT ZA LAZY LOADING ===
+linkSection.addEventListener("scroll", () => {
+    if (linkSection.scrollTop + linkSection.clientHeight >= linkSection.scrollHeight - 10) {
+        loadLinkBatch();
+    }
+});
+
+function showVideosFromColumn(colIndex) {
     const videoSection = document.getElementById("video-section");
     const main = document.getElementById("main");
 
+    videoSection.innerHTML = "";
+
     const videos = allData
-        .map(row => ({ link: row[currentColIndex], desc: row[currentColIndex + 1] || "" }))
+        .map(row => ({ link: row[colIndex], desc: row[colIndex + 1] || "" }))
         .filter(v => v.link && v.link.trim());
 
     if (videos.length === 0) {
@@ -331,14 +353,10 @@ function loadMoreVideos() {
         return;
     }
 
-    if (currentVideoIndex === 0) {
-        // embed prvi video
-        embedVideo(videos[0].link, main, autoplayEnabled);
-    }
+    const firstVideo = videos[0];
+    embedVideo(firstVideo.link, main, autoplayEnabled);
 
-    const nextBatch = videos.slice(currentVideoIndex, currentVideoIndex + videoBatch);
-
-    nextBatch.reverse().forEach(({ link, desc }) => {
+    videos.reverse().forEach(({ link, desc }) => {
         const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
         if (!match) return;
         const videoId = match[1];
@@ -366,17 +384,7 @@ function loadMoreVideos() {
 
         videoSection.appendChild(videoItem);
     });
-
-    currentVideoIndex += videoBatch;
 }
-
-// Infinite scroll za video sekciju
-document.getElementById("video-section").addEventListener("scroll", () => {
-    const container = document.getElementById("video-section");
-    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 50) {
-        loadMoreVideos();
-    }
-});
 
 function embedVideo(link, container, autoplay) {
     const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -392,6 +400,12 @@ function embedVideo(link, container, autoplay) {
         </iframe>
     </div>`;
 }
+
+// inicijalno sakrij sve linkove za lazy loading
+document.addEventListener("DOMContentLoaded", () => {
+    Array.from(linkSection.children).forEach(item => item.style.display = "none");
+});
 </script>
+
 </body>
 </html>
