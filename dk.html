@@ -191,7 +191,7 @@ header.card img {
     flex-direction: column;
     justify-content: center;
     flex-grow: 1;
-    position: relative; /* Potrebno za pozicioniranje hover teksta */
+    position: relative;
 }
 
 .video-desc {
@@ -227,6 +227,7 @@ header.card img {
     color: #333;
 }
 
+
 #sidebar-content-wrapper::-webkit-scrollbar {
     width: 8px;
 }
@@ -254,6 +255,21 @@ header.card img {
     margin-right: 5px;
 }
 
+/* Dugmad u footeru */
+.button-link {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
 .footer-container {
     width: 100%;
     display: flex;
@@ -268,21 +284,7 @@ header.card img {
 
 .footer-buttons-right {
     display: flex;
-    gap: 10px; /* Space between buttons */
-}
-
-.footer-buttons-right .button-link {
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    padding: 8px 12px;
-    border-radius: 5px;
-    text-decoration: none;
-    color: #333;
-    font-size: 14px;
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    white-space: nowrap;
+    gap: 10px;
 }
 </style>
 </head>
@@ -318,10 +320,10 @@ header.card img {
                 <div class="footer-checkbox-wrapper">
                     <input type="checkbox" id="autoplay-next">
                     <label for="autoplay-next">Autoplay next</label>
+                    <a id="play-next" class="button-link">Play Next</a>
                 </div>
                 <span class="footer-text-center" id="footer-text"></span>
                 <div class="footer-buttons-right">
-                    <a id="play-next" class="button-link" href="#">Play Next</a>
                     <a id="footer-button-1" class="button-link" href="#" target="_blank" style="display:none;"></a>
                     <a id="footer-button-2" class="button-link" href="#" target="_blank" style="display:none;"></a>
                 </div>
@@ -592,6 +594,7 @@ function embedVideo(link, container, autoplay, videoIndex) {
     });
 }
 
+// Load YouTube IFrame API
 let tag = document.createElement('script');
 tag.src = "https://www.youtube.com/iframe_api";
 document.body.appendChild(tag);
