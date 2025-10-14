@@ -18,6 +18,12 @@ body {
     display: inline-block;
     width: 30px;
     height: 30px;
+    transition: transform 0.2s, filter 0.2s;
+}
+
+.social-link:hover {
+    transform: scale(1.2);
+    filter: brightness(1.2);
 }
 
 .social-icon {
@@ -145,10 +151,18 @@ header.card img {
     cursor: pointer;
     border-radius: 8px;
     padding: 6px;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
     background: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
+.link-item:hover, .video-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    background: #f0f0f0;
+}
+
+/* Aktivni link */
 .link-item.active {
     background: #d0eaff;
     font-weight: bold;
@@ -201,13 +215,6 @@ header.card img {
     font-size: 14px;
 }
 
-.footer-container {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
 .footer-checkbox-wrapper {
     display: flex;
     align-items: center;
@@ -220,16 +227,38 @@ header.card img {
     margin-right: 5px;
 }
 
-.footer-buttons-wrapper {
+.footer-container {
+    width: 100%;
     display: flex;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.footer-buttons-wrapper button {
-    padding: 6px 12px;
-    font-size: 14px;
-    cursor: pointer;
+.footer-text-center {
+    text-align: center;
+    flex-grow: 1;
 }
+
+.footer-buttons-right {
+    display: flex;
+    gap: 10px; /* Space between buttons */
+}
+
+.footer-buttons-right .button-link {
+    background-color: #f0f0f0; /* Light grey background */
+    border: 1px solid #ccc; /* Subtle border */
+    padding: 8px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* No hover effects as per request */
 </style>
 </head>
 <body>
@@ -266,9 +295,10 @@ header.card img {
                     <label for="autoplay-next">Autoplay next</label>
                     <button id="play-next">Play Next</button>
                 </div>
-                <div class="footer-buttons-wrapper">
-                    <button id="footer-btn-1"></button>
-                    <button id="footer-btn-2"></button>
+                <span class="footer-text-center" id="footer-text"></span>
+                <div class="footer-buttons-right">
+                    <a id="footer-button-1" class="button-link" href="#" target="_blank" style="display:none;"></a>
+                    <a id="footer-button-2" class="button-link" href="#" target="_blank" style="display:none;"></a>
                 </div>
             </div>
         </footer>
@@ -296,8 +326,9 @@ const videoLoadingIndicator = document.getElementById("video-loading-indicator")
 const mainVideoPlayer = document.getElementById("main");
 const autoplayNextCheckbox = document.getElementById("autoplay-next");
 const playNextButton = document.getElementById("play-next");
-const footerBtn1 = document.getElementById("footer-btn-1");
-const footerBtn2 = document.getElementById("footer-btn-2");
+const footerButton1 = document.getElementById("footer-button-1");
+const footerButton2 = document.getElementById("footer-button-2");
+
 
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
@@ -324,16 +355,24 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        // Postavi footer dugmad iz E7 i E8 (indeksi 6 i 7 u nizu, jer niz počinje od 0)
-        const footerBtn1Name = allData[6][4] || "Dugme 1";
-        const footerBtn1Link = allData[6][5] || "#";
-        footerBtn1.textContent = footerBtn1Name;
-        footerBtn1.addEventListener("click", () => window.open(footerBtn1Link, "_blank"));
+        // Process footer buttons from E7 and E8
+        if (allData[6] && allData[6][4]) { // E7
+            const [text, link] = allData[6][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton1.textContent = text;
+                footerButton1.href = link;
+                footerButton1.style.display = 'inline-flex';
+            }
+        }
+        if (allData[7] && allData[7][4]) { // E8
+            const [text, link] = allData[7][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton2.textContent = text;
+                footerButton2.href = link;
+                footerButton2.style.display = 'inline-flex';
+            }
+        }
 
-        const footerBtn2Name = allData[7][4] || "Dugme 2";
-        const footerBtn2Link = allData[7][5] || "#";
-        footerBtn2.textContent = footerBtn2Name;
-        footerBtn2.addEventListener("click", () => window.open(footerBtn2Link, "_blank"));
 
         const linkSection = document.getElementById("link-section");
 
@@ -466,7 +505,7 @@ function embedVideo(link, container, autoplay, videoIndex) {
     container.innerHTML = `<div class="video-wrapper" style="padding-bottom:56.25%">
         <iframe id="video-iframe"
             src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1&enablejsapi=1&rel=0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay"
             allowfullscreen>
         </iframe>
     </div>`;
