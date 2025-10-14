@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Channel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --primary-bg: #f8f8fa;
+    --card-bg: #ffffff;
+    --text-color-dark: #2c3e50;
+    --text-color-medium: #5a6a7a;
+    --text-color-light: #9eaab7;
+    --accent-color: #007bff; /* A modern blue, can be customized */
+    --border-color: #e0e6ed;
+    --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-hover: 0 8px 20px rgba(0, 0, 0, 0.12);
+    --transition-speed: 0.2s ease-out;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--primary-bg);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Scrollbar styles for modern look */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.footer-checkbox-wrapper input[type="checkbox"] {
+    accent-color: var(--accent-color);
+    width: 18px; /* Slightly larger for modern look */
+    height: 18px;
+    min-width: 18px; /* Ensure consistent size */
+    min-height: 18px; /* Ensure consistent size */
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    vertical-align: middle;
+}
+    
+.social-link {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    transition: transform var(--transition-speed), filter var(--transition-speed);
+}
+
+.social-link:hover {
+    transform: translateY(-2px) scale(1.05); /* Slight lift and scale */
+    filter: brightness(1.1);
+}
+
+.social-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    fill: currentColor;
+}
+
+.page-wrapper {
+    width: 100%;
+    max-width: 1800px; /* Increased max-width */
+    display: flex;
+    gap: 20px; /* Increased gap for more breathing room */
+    box-sizing: border-box;
+    align-items: flex-start;
+}
+
+.sidebar.card {
+    width: 380px; /* Wider sidebar */
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border-radius: 12px; /* More rounded corners */
+    box-shadow: var(--shadow-light);
+    overflow: hidden; /* For inner scroll */
+    max-height: calc(100vh - 40px); /* Adjust to viewport height with padding */
+}
+
+#sidebar-content-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px; /* More padding */
+    background: var(--card-bg);
+}
+
+.right-column {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Increased gap */
+}
+
+header.card, footer.card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow-light);
+    height: 90px; /* Taller header/footer */
+    display: flex;
+    align-items: center;
+    gap: 15px; /* More gap */
+    padding: 0 25px; /* More padding */
+    color: var(--text-color-medium);
+    font-size: 17px; /* Slightly smaller for balance */
+    flex-shrink: 0;
+}
+
+header.card img {
+    width: 68px; /* Larger profile image */
+    height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--border-color); /* Subtle border */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header-texts {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.3;
+}
+
+.header-texts span.name {
+    font-weight: 600; /* Medium bold */
+    color: var(--text-color-dark);
+    font-size: 22px; /* Larger name */
+}
+
+.header-texts span.motto {
+    font-size: 15px; /* Slightly smaller motto */
+    color: var(--text-color-medium);
+    font-weight: 400;
+}
+
+.main.card {
+    display: flex;
+    flex-direction: column;
+    background: #000; /* Keep black for video player */
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-light);
+}
+
+#main {
+    width: 100%;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    background: #000; /* Fallback for video area */
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.section-title {
+    font-size: 18px; /* Slightly larger title */
+    font-weight: 600;
+    margin-bottom: 15px; /* More space below title */
+    color: var(--text-color-dark);
+    text-align: left; /* Align left */
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px; /* More padding */
+    margin-top: 20px; /* Space above first title */
+}
+.section-title:first-child {
+    margin-top: 0; /* No top margin for the very first title */
+}
+
+.video-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px; /* More space between items */
+    cursor: pointer;
+    border-radius: 10px; /* Slightly more rounded */
+    padding: 10px; /* More padding */
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed);
+    background: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.link-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px; /* Slightly less margin for links */
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 14px 18px; /* More padding */
+    min-height: 25px;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed);
+    background: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+    
+.link-item:hover, .video-item:hover {
+    transform: translateY(-2px) scale(1.01); /* Subtle lift and scale */
+    box-shadow: var(--shadow-hover);
+    background: #f0f4f8; /* Lighter hover background */
+}
+
+.link-item.active {
+    background: var(--accent-color);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.3); /* Accent shadow */
+    transform: translateY(-2px);
+}
+.link-item.active .link-text {
+    color: #ffffff; /* Ensure text is white */
+}
+
+.link-text {
+    font-size: 15px; /* Slightly larger text */
+    color: var(--text-color-dark);
+    line-height: 1.4;
+    word-break: break-word;
+    flex-grow: 1;
+    text-decoration: none;
+}
+
+.video-item img {
+    width: 140px; /* Larger thumbnail */
+    height: auto;
+    border-radius: 8px; /* Rounded corners */
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.video-info {
+    margin-left: 15px; /* More space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
+    position: relative;
+}
+
+.video-desc {
+    font-size: 14px; /* Slightly larger description */
+    color: var(--text-color-medium);
+    line-height: 1.3;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 2.6em; /* Adjusted max height */
+}
+
+.video-desc.hover-text {
+    position: fixed; /* Use fixed for better positioning */
+    background: rgba(255, 255, 255, 0.98); /* More opaque */
+    border: 1px solid var(--border-color);
+    padding: 10px 14px;
+    border-radius: 8px;
+    z-index: 100; /* Higher z-index */
+    box-shadow: var(--shadow-hover);
+    display: block;
+    white-space: normal;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    word-break: break-word;
+    color: var(--text-color-dark);
+    max-width: 350px; /* Wider hover text */
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 15px; /* More padding */
+    color: var(--text-color-light);
+    font-size: 15px;
+}
+
+.footer-checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    color: var(--text-color-dark);
+    gap: 12px; /* More gap */
+}
+
+.footer-checkbox-wrapper label {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Button styles */
+.button-link {
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    padding: 9px 15px; /* Adjusted padding */
+    border-radius: 8px; /* More rounded */
+    text-decoration: none;
+    color: var(--text-color-dark);
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed), border-color var(--transition-speed);
+}
+
+.button-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    background: #e9f0f6; /* Lighter background on hover */
+    border-color: #c9d4e0;
+}
+.button-link:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-light);
+    background: #dbe4ee;
+}
+
+.footer-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer-text-center {
+    text-align: center;
+    flex-grow: 1;
+    color: var(--text-color-medium);
+    font-size: 14px;
+}
+
+.footer-buttons-right {
+    display: flex;
+    gap: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .page-wrapper {
+        flex-direction: column;
+        align-items: center;
+        padding: 15px;
+    }
+    .sidebar.card {
+        width: 100%;
+        max-width: 700px; /* Limit sidebar width on smaller screens */
+        max-height: 50vh; /* Allow sidebar to shrink */
+    }
+    .right-column {
+        width: 100%;
+        max-width: 700px; /* Limit right column width */
+    }
+    header.card, footer.card {
+        padding: 0 20px;
+        height: 80px;
+    }
+    .header-texts span.name {
+        font-size: 20px;
+    }
+    .header-texts span.motto {
+        font-size: 14px;
+    }
+    .video-item img {
+        width: 100px;
+    }
+    .video-info {
+        margin-left: 10px;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    .page-wrapper {
+        gap: 15px;
+    }
+    .sidebar.card, .right-column {
+        max-width: 100%;
+    }
+    header.card, footer.card {
+        flex-wrap: wrap; /* Allow wrapping */
+        height: auto;
+        min-height: 70px;
+        padding: 15px;
+        justify-content: center;
+        text-align: center;
+    }
+    header.card {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .footer-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .footer-text-center {
+        order: 3; /* Move text to bottom */
+    }
+    .footer-checkbox-wrapper {
+        order: 1;
+        width: 100%;
+        justify-content: center;
+    }
+    .footer-buttons-right {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
+    .button-link {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+    .video-item {
+        flex-direction: column;
+        text-align: center;
+        padding: 12px;
+    }
+    .video-item img {
+        width: 100%;
+        max-width: 200px;
+        margin-bottom: 10px;
+    }
+    .video-info {
+        margin-left: 0;
+    }
+    .video-desc {
+        text-align: left; /* Keep description left aligned */
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+    <aside class="sidebar card">
+        <div id="sidebar-content-wrapper">
+            <div class="section-title" id="content-title"></div>
+            <div id="link-section"></div>
+            <div class="section-title" id="video-title"></div>
+            <div id="video-section"></div>
+            <div class="loading-indicator" id="video-loading-indicator" style="display:none;">Loading more videos...</div>
+        </div>
+    </aside>
+
+    <div class="right-column">
+        <header class="card">
+            <img id="profile-img" alt="Profile Image">
+            <div class="header-texts">
+                <span class="name" id="profile-name"></span>
+                <span class="motto" id="profile-motto"></span>
+            </div>
+        </header>
+
+        <main class="main card">
+            <div id="main"></div>
+        </main>
+
+        <footer class="card">
+            <div class="footer-container">
+                <div class="footer-checkbox-wrapper">
+                    <input type="checkbox" id="autoplay-next">
+                    <label for="autoplay-next">Autoplay next</label>
+                    <a id="play-next" class="button-link">Play Next</a>
+                </div>
+                <span class="footer-text-center" id="footer-text"></span>
+                <div class="footer-buttons-right">
+                    <a id="footer-button-1" class="button-link" href="#" target="_blank" style="display:none;"></a>
+                    <a id="footer-button-2" class="button-link" href="#" target="_blank" style="display:none;"></a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
+
+let allData = [];
+let autoplayEnabled = false;
+let autoplayNextEnabled = false;
+let currentVideos = [];
+let loadedVideoCount = 0;
+const VIDEOS_PER_LOAD = 10;
+let selectedColumnIndex = 0;
+let currentActiveLink = null;
+let currentVideoIndex = 0;
+
+const sidebarContentWrapper = document.getElementById("sidebar-content-wrapper");
+const videoSection = document.getElementById("video-section");
+const videoLoadingIndicator = document.getElementById("video-loading-indicator");
+const mainVideoPlayer = document.getElementById("main");
+const autoplayNextCheckbox = document.getElementById("autoplay-next");
+const playNextButton = document.getElementById("play-next");
+const footerButton1 = document.getElementById("footer-button-1");
+const footerButton2 = document.getElementById("footer-button-2");
+
+
+autoplayNextCheckbox.addEventListener("change", () => {
+    autoplayNextEnabled = autoplayNextCheckbox.checked;
+});
+
+playNextButton.addEventListener("click", () => {
+    if (!currentVideos.length) return;
+    let nextIndex = currentVideoIndex + 1;
+    if (nextIndex >= currentVideos.length) nextIndex = 0;
+    embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+});
+
+Papa.parse(sheetUrl, {
+    download: true,
+    header: false,
+    complete: function(results) {
+        allData = results.data.filter(row => row[0]);
+        if (allData.length === 0) return;
+
+        document.getElementById("profile-img").src = allData[0][4];
+        document.getElementById("profile-name").textContent = allData[1][4];
+        document.getElementById("profile-motto").textContent = allData[2][4];
+        document.getElementById("footer-text").textContent = allData[3][4];
+        document.getElementById("content-title").textContent = allData[4][4];
+        document.getElementById("video-title").textContent = allData[5][4];
+
+        if (allData[6] && allData[6][4]) {
+            const [text, link] = allData[6][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton1.textContent = text;
+                footerButton1.href = link;
+                footerButton1.style.display = 'inline-flex';
+            }
+        }
+        if (allData[7] && allData[7][4]) {
+            const [text, link] = allData[7][4].split('|').map(s => s.trim());
+            if (text && link) {
+                footerButton2.textContent = text;
+                footerButton2.href = link;
+                footerButton2.style.display = 'inline-flex';
+            }
+        }
+
+        const linkSection = document.getElementById("link-section");
+
+        allData.forEach(row => {
+            const linkText = row[2];
+            const targetColumnLetter = row[3];
+
+            if (linkText && targetColumnLetter) {
+                const linkItem = document.createElement("div");
+                linkItem.className = "link-item";
+
+                const linkDiv = document.createElement("div");
+                linkDiv.className = "link-text";
+                linkDiv.textContent = linkText;
+
+                linkItem.appendChild(linkDiv);
+
+                linkItem.addEventListener("click", () => {
+                    if (currentActiveLink) currentActiveLink.classList.remove("active");
+                    currentActiveLink = linkItem;
+                    currentActiveLink.classList.add("active");
+
+                    autoplayEnabled = true;
+                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+                    if (colIndex === null) {
+                        alert("Nepoznata kolona: " + targetColumnLetter);
+                        return;
+                    }
+                    selectedColumnIndex = colIndex;
+                    resetAndShowVideosFromColumn(colIndex);
+                });
+
+                linkSection.appendChild(linkItem);
+            }
+        });
+
+        resetAndShowVideosFromColumn(0);
+        sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
+    }
+});
+
+function letterToIndex(letter) {
+    if (!/^[A-Z]+$/.test(letter)) return null;
+    let index = 0;
+    for (let i = 0; i < letter.length; i++) {
+        index = index * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return index - 1;
+}
+
+function resetAndShowVideosFromColumn(colIndex) {
+    videoSection.innerHTML = "";
+    loadedVideoCount = 0;
+
+    currentVideos = allData
+        .map(row => ({ link: row[colIndex], desc: row[colIndex + 1] || "" }))
+        .filter(v => v.link && v.link.trim());
+
+    currentVideos.reverse();
+
+    if (currentVideos.length === 0) {
+        videoSection.innerHTML = "<div style='text-align:center; color:var(--text-color-medium); padding: 20px;'>No videos found in this section.</div>";
+        mainVideoPlayer.innerHTML = "";
+        return;
+    }
+
+    currentVideoIndex = 0;
+    embedVideo(currentVideos[0].link, mainVideoPlayer, autoplayEnabled, 0);
+    loadMoreVideos();
+}
+
+function loadMoreVideos() {
+    if (loadedVideoCount >= currentVideos.length) return;
+    videoLoadingIndicator.style.display = 'block';
+
+    const startIndex = loadedVideoCount;
+    const endIndex = Math.min(startIndex + VIDEOS_PER_LOAD, currentVideos.length);
+    const fragment = document.createDocumentFragment();
+
+    for (let i = startIndex; i < endIndex; i++) {
+        const { link, desc } = currentVideos[i];
+        const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (!match) continue;
+        const videoId = match[1];
+
+        const videoItem = document.createElement("div");
+        videoItem.className = "video-item";
+
+        const thumbnail = document.createElement("img");
+        thumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        thumbnail.alt = "Video Thumbnail";
+
+        const info = document.createElement("div");
+        info.className = "video-info";
+
+        const description = document.createElement("div");
+        description.className = "video-desc";
+        const originalDesc = desc;
+        description.textContent = originalDesc.length > 35 ? originalDesc.substring(0, 35) + '...' : originalDesc;
+        description.setAttribute('data-full-text', originalDesc);
+
+        let hoverTimeout;
+        const hoverElement = document.createElement("div");
+        hoverElement.className = "video-desc hover-text";
+        hoverElement.style.display = 'none';
+
+        description.addEventListener('mouseenter', function(e) {
+            if (originalDesc.length > 35) {
+                hoverElement.textContent = originalDesc;
+                document.body.appendChild(hoverElement); // Append to body to float over everything
+                
+                // Position relative to mouse or element
+                const rect = e.target.getBoundingClientRect();
+                hoverElement.style.left = `${rect.left + window.scrollX + 20}px`; // 20px right of element
+                hoverElement.style.top = `${rect.top + window.scrollY - hoverElement.offsetHeight / 2 + rect.height / 2}px`; // Centered vertically
+                
+                // Adjust if it goes off screen right
+                if (hoverElement.getBoundingClientRect().right > window.innerWidth - 20) {
+                    hoverElement.style.left = `${rect.left + window.scrollX - hoverElement.offsetWidth - 20}px`;
+                }
+                // Adjust if it goes off screen top
+                if (hoverElement.getBoundingClientRect().top < 20) {
+                    hoverElement.style.top = `${rect.top + window.scrollY}px`;
+                }
+
+                hoverElement.style.display = 'block';
+            }
+        });
+
+        description.addEventListener('mouseleave', function() {
+            clearTimeout(hoverTimeout);
+            hoverTimeout = setTimeout(() => {
+                hoverElement.style.display = 'none';
+                if (document.body.contains(hoverElement)) {
+                    document.body.removeChild(hoverElement);
+                }
+            }, 100); // Small delay to allow moving mouse to hover box
+        });
+
+        hoverElement.addEventListener('mouseenter', function() {
+            clearTimeout(hoverTimeout); // Keep hover box open if mouse enters it
+        });
+        hoverElement.addEventListener('mouseleave', function() {
+            hoverElement.style.display = 'none';
+            if (document.body.contains(hoverElement)) {
+                document.body.removeChild(hoverElement);
+            }
+        });
+
+        info.appendChild(description);
+        videoItem.appendChild(thumbnail);
+        videoItem.appendChild(info);
+
+        videoItem.addEventListener("click", () => {
+            embedVideo(link, mainVideoPlayer, true, i);
+        });
+
+        fragment.appendChild(videoItem);
+    }
+
+    videoSection.appendChild(fragment);
+    loadedVideoCount = endIndex;
+    videoLoadingIndicator.style.display = 'none';
+}
+
+function handleVideoScroll() {
+    const { scrollTop, scrollHeight, clientHeight } = sidebarContentWrapper;
+    if (scrollHeight - scrollTop - clientHeight < 100) { // Load when 100px from bottom
+        loadMoreVideos();
+    }
+}
+
+function embedVideo(link, container, autoplay, videoIndex) {
+    const match = link.match(/(?:\/embed\/|watch\?v=|\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (!match) return;
+    const videoId = match[1];
+    const autoplayParam = autoplay ? 1 : 0;
+
+    currentVideoIndex = videoIndex;
+
+    container.innerHTML = `<div class="video-wrapper">
+        <iframe id="video-iframe"
+            src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1&enablejsapi=1&rel=0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+        </iframe>
+    </div>`;
+
+    const iframe = container.querySelector('iframe');
+    if (!iframe) return;
+
+    // This creates a new YT.Player instance and attaches to the iframe
+    // The global onYouTubeIframeAPIReady function ensures this runs after the API is loaded
+    if (window.YT && window.YT.Player) {
+        new YT.Player('video-iframe', {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            // If autoplay next is off, replay current video or pause
+                            const player = event.target;
+                            player.seekTo(0);
+                            player.playVideo();
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        // If API not ready yet, store info to be used by onYouTubeIframeAPIReady
+        window.ytPlayerConfig = {
+            videoId: videoId,
+            autoplayParam: autoplayParam,
+            videoIndex: videoIndex
+        };
+    }
+}
+
+// Load YouTube IFrame API
+let tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+let firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+// This function is called by the YouTube IFrame API when it's ready
+function onYouTubeIframeAPIReady() {
+    if (window.ytPlayerConfig) {
+        // If a video was requested before API was ready, play it now
+        new YT.Player('video-iframe', {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = window.ytPlayerConfig.videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            const player = event.target;
+                            player.seekTo(0);
+                            player.playVideo();
+                        }
+                    }
+                }
+            }
+        });
+        delete window.ytPlayerConfig; // Clean up
+    }
+}
+</script>
+
+</body>
+</html>
