@@ -513,48 +513,43 @@ Papa.parse(sheetUrl, {
 
         const linkSection = document.getElementById("link-section");
 
-
         allData.forEach(row => {
-    const linkText = row[2];
-    const targetColumnLetter = row[3];
+            const linkText = row[2];
+            const targetColumnLetter = row[3];
 
-    if (linkText && targetColumnLetter) {
-        const linkItem = document.createElement("div");
-        linkItem.className = "link-item";
+            if (linkText && targetColumnLetter) {
+                const linkItem = document.createElement("div");
+                linkItem.className = "link-item";
 
-        const linkDiv = document.createElement("div");
-        linkDiv.className = "link-text";
-        linkDiv.textContent = linkText;
+                const linkDiv = document.createElement("div");
+                linkDiv.className = "link-text";
+                linkDiv.textContent = linkText;
 
-        linkItem.appendChild(linkDiv);
+                linkItem.appendChild(linkDiv);
 
-        linkItem.addEventListener("click", () => {
-            if (currentActiveLink) currentActiveLink.classList.remove("active");
-            currentActiveLink = linkItem;
-            currentActiveLink.classList.add("active");
+                linkItem.addEventListener("click", () => {
+                    if (currentActiveLink) currentActiveLink.classList.remove("active");
+                    currentActiveLink = linkItem;
+                    currentActiveLink.classList.add("active");
 
-            autoplayEnabled = true;
-            const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
-            if (colIndex === null) {
-                alert("Nepoznata kolona: " + targetColumnLetter);
-                return;
+                    autoplayEnabled = true;
+                    const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+                    if (colIndex === null) {
+                        alert("Nepoznata kolona: " + targetColumnLetter);
+                        return;
+                    }
+                    selectedColumnIndex = colIndex;
+                    resetAndShowVideosFromColumn(colIndex);
+                });
+
+                linkSection.appendChild(linkItem);
             }
-            selectedColumnIndex = colIndex;
-            resetAndShowVideosFromColumn(colIndex);
         });
 
-        linkSection.appendChild(linkItem);
+        resetAndShowVideosFromColumn(0);
+        sidebarContentWrapper.addEventListener("scroll", handleVideoScroll);
     }
 });
-
-// ← OVO IDE VAN forEach, NAKON što su svi linkovi dodati
-const urlParams = new URLSearchParams(window.location.search);
-const rowParam = parseInt(urlParams.get('row'), 10); // npr ?row=3
-
-if (!isNaN(rowParam) && rowParam >= 1 && rowParam <= linkSection.children.length) {
-    const linkToClick = linkSection.children[rowParam - 1];
-    linkToClick.click();  // automatski aktivira C3
-}
 
 function letterToIndex(letter) {
     if (!/^[A-Z]+$/.test(letter)) return null;
