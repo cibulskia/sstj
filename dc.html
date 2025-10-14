@@ -14,34 +14,15 @@ body {
     align-items: flex-start;
 }
 
-.social-link {
-    display: inline-block;
-    width: 30px;
-    height: 30px;
-    transition: transform 0.2s, filter 0.2s;
-}
-
-.social-link:hover {
-    transform: scale(1.2);
-    filter: brightness(1.2);
-}
-
-.social-icon {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    fill: currentColor;
-}
-
 .page-wrapper {
     width: 1600px;
     display: flex;
     gap: 10px;
     box-sizing: border-box;
     padding: 10px;
-    align-items: flex-start;
 }
 
+/* === SIDEBAR === */
 .sidebar.card {
     width: 300px;
     display: flex;
@@ -60,6 +41,7 @@ body {
     background: #fafafa;
 }
 
+/* === DESNA STRANA === */
 .right-column {
     flex-grow: 1;
     display: flex;
@@ -78,7 +60,6 @@ header.card, footer.card {
     padding: 0 15px;
     color: #666;
     font-size: 18px;
-    flex-shrink: 0;
 }
 
 header.card img {
@@ -103,7 +84,6 @@ header.card img {
 .header-texts span.motto {
     font-size: 18px;
     color: #888;
-    font-weight: normal;
 }
 
 .main.card {
@@ -119,10 +99,12 @@ header.card img {
     width: 100%;
 }
 
+/* === VIDEO WRAPPER === */
 .video-wrapper {
     position: relative;
     width: 100%;
     height: 0;
+    padding-bottom: 56.25%;
     overflow: hidden;
 }
 
@@ -134,6 +116,7 @@ header.card img {
     height: 100%;
 }
 
+/* === LINKOVI === */
 .section-title {
     font-size: 16px;
     font-weight: bold;
@@ -144,7 +127,7 @@ header.card img {
     padding-bottom: 6px;
 }
 
-.link-item, .video-item {
+.link-item {
     display: flex;
     align-items: center;
     margin-bottom: 12px;
@@ -156,7 +139,7 @@ header.card img {
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
-.link-item:hover, .video-item:hover {
+.link-item:hover {
     transform: scale(1.02);
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     background: #f0f0f0;
@@ -168,31 +151,41 @@ header.card img {
     line-height: 1.3;
     word-break: break-word;
     flex-grow: 1;
-    text-decoration: none;
 }
 
+/* VIDEO LISTA */
+.video-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 6px;
+    background: #fff;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.video-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    background: #f0f0f0;
+}
 .video-item img {
     width: 120px;
-    height: auto;
     border-radius: 6px;
-    flex-shrink: 0;
 }
-
 .video-info {
     margin-left: 10px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    flex-grow: 1;
 }
-
 .video-desc {
     font-size: 13px;
     color: #666;
     line-height: 1.2;
-    word-break: break-word;
 }
 
+/* Scrollbar */
 #sidebar::-webkit-scrollbar {
     width: 8px;
 }
@@ -205,16 +198,18 @@ header.card img {
 <body>
 
 <div class="page-wrapper">
-
+    <!-- Leva sekcija -->
     <aside class="sidebar card">
         <div id="sidebar">
             <div class="section-title" id="content-title"></div>
             <div id="link-section"></div>
+            <div id="sentinel" style="height:20px;"></div>
             <div class="section-title" id="video-title"></div>
             <div id="video-section"></div>
         </div>
     </aside>
 
+    <!-- Desna kolona -->
     <div class="right-column">
         <header class="card">
             <img id="profile-img">
@@ -234,7 +229,6 @@ header.card img {
             </div>
         </footer>
     </div>
-
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -242,12 +236,10 @@ header.card img {
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
 
 let allData = [];
+let linkData = [];
 let autoplayEnabled = false;
-let linkBatchSize = 20; // koliko linkova učitavamo po batch-u
-let linkIndex = 0;      // indeks poslednjeg učitanog linka
-let linkColumn = 0;     // trenutno aktivna kolona
-
-const linkSection = document.getElementById("link-section");
+let currentBatch = 0;
+const BATCH_SIZE = 10;
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -256,6 +248,7 @@ Papa.parse(sheetUrl, {
         allData = results.data.filter(row => row[0]);
         if (allData.length === 0) return;
 
+        // Učitavanje vrednosti iz kolone E (index 4)
         document.getElementById("profile-img").src = allData[0][4];
         document.getElementById("profile-name").textContent = allData[1][4];
         document.getElementById("profile-motto").textContent = allData[2][4];
@@ -263,10 +256,58 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        initLinks();
-        showVideosFromColumn(0);
+        // Filtriramo linkove
+        linkData = allData.filter(row => row[2] && row[3]); // kolone C i D
+        loadNextBatch();
+
+        // Pokretanje IntersectionObserver za lazy loading
+        const sentinel = document.getElementById("sentinel");
+        const observer = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) {
+                loadNextBatch();
+            }
+        });
+        observer.observe(sentinel);
     }
 });
+
+function loadNextBatch() {
+    const start = currentBatch * BATCH_SIZE;
+    const end = start + BATCH_SIZE;
+    const batch = linkData.slice(start, end);
+
+    if (batch.length === 0) return;
+
+    const linkSection = document.getElementById("link-section");
+
+    batch.forEach(row => {
+        const linkText = row[2];
+        const targetColumnLetter = row[3];
+
+        const linkItem = document.createElement("div");
+        linkItem.className = "link-item";
+
+        const linkDiv = document.createElement("div");
+        linkDiv.className = "link-text";
+        linkDiv.textContent = linkText;
+
+        linkItem.appendChild(linkDiv);
+
+        linkItem.addEventListener("click", () => {
+            autoplayEnabled = true;
+            const colIndex = letterToIndex(targetColumnLetter.trim().toUpperCase());
+            if (colIndex === null) {
+                alert("Nepoznata kolona: " + targetColumnLetter);
+                return;
+            }
+            showVideosFromColumn(colIndex);
+        });
+
+        linkSection.appendChild(linkItem);
+    });
+
+    currentBatch++;
+}
 
 function letterToIndex(letter) {
     if (!/^[A-Z]+$/.test(letter)) return null;
@@ -276,66 +317,6 @@ function letterToIndex(letter) {
     }
     return index - 1;
 }
-
-// === INIT LINKOVI ===
-function initLinks() {
-    linkIndex = 0;
-    linkColumn = 0;
-    linkSection.innerHTML = "";
-
-    allData.forEach(row => {
-        const linkText = row[2]; // kolona C
-        const targetColumnLetter = row[3]; // kolona D
-
-        if (linkText && targetColumnLetter) {
-            const linkItem = document.createElement("div");
-            linkItem.className = "link-item";
-            linkItem.dataset.column = targetColumnLetter.trim().toUpperCase();
-
-            const linkDiv = document.createElement("div");
-            linkDiv.className = "link-text";
-            linkDiv.textContent = linkText;
-
-            linkItem.appendChild(linkDiv);
-
-            linkItem.addEventListener("click", () => {
-                autoplayEnabled = true;
-                linkColumn = letterToIndex(targetColumnLetter.trim().toUpperCase());
-                if (linkColumn === null) {
-                    alert("Nepoznata kolona: " + targetColumnLetter);
-                    return;
-                }
-                linkIndex = 0;
-                linkSection.innerHTML = "";
-                loadLinkBatch();
-                showVideosFromColumn(linkColumn);
-            });
-
-            linkSection.appendChild(linkItem);
-        }
-    });
-
-    // inicijalno učitavanje batch-a
-    loadLinkBatch();
-}
-
-// === FUNKCIJA ZA LAZY LOADING LINKOVA ===
-function loadLinkBatch() {
-    const items = Array.from(linkSection.children);
-    let count = 0;
-    for (let i = linkIndex; i < items.length && count < linkBatchSize; i++) {
-        items[i].style.display = "flex"; // prikazujemo batch
-        count++;
-        linkIndex = i + 1;
-    }
-}
-
-// === SCROLL EVENT ZA LAZY LOADING ===
-linkSection.addEventListener("scroll", () => {
-    if (linkSection.scrollTop + linkSection.clientHeight >= linkSection.scrollHeight - 10) {
-        loadLinkBatch();
-    }
-});
 
 function showVideosFromColumn(colIndex) {
     const videoSection = document.getElementById("video-section");
@@ -392,7 +373,7 @@ function embedVideo(link, container, autoplay) {
     const videoId = match[1];
     const autoplayParam = autoplay ? 1 : 0;
 
-    container.innerHTML = `<div class="video-wrapper" style="padding-bottom:56.25%">
+    container.innerHTML = `<div class="video-wrapper">
         <iframe 
             src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; autoplay" 
@@ -400,13 +381,6 @@ function embedVideo(link, container, autoplay) {
         </iframe>
     </div>`;
 }
-
-// inicijalno sakrij sve linkove za lazy loading
-document.addEventListener("DOMContentLoaded", () => {
-    Array.from(linkSection.children).forEach(item => item.style.display = "none");
-});
 </script>
-
 </body>
 </html>
-
