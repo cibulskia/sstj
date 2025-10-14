@@ -22,6 +22,11 @@
     --transition-speed: 0.3s;
 }
 
+#video-section {
+    max-height: 600px; /* ili koliko ti treba */
+    overflow-y: auto;
+}
+    
 .link-item.active {
     background-color: var(--primary-color); /* Bordo pozadina */
     color: #fff; /* Beli tekst */
@@ -556,12 +561,13 @@ footer #rumble-link:hover svg { fill: #fff; }
 <script>
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
 
+<script>
 let allData = [];
 let autoplayEnabled = false;
 let activeLinkItem = null;
 let currentVideos = [];
 let loadedCount = 0;
-const chunkSize = 10; // koliko video-itema učitavati po batch-u
+const chunkSize = 5; // koliko videa se učitava po batch-u
 
 Papa.parse(sheetUrl, {
     download: true,
@@ -570,7 +576,6 @@ Papa.parse(sheetUrl, {
         allData = results.data.filter(row => row[0]);
         if (!allData.length) return;
 
-        // Popunjavanje headera i footera
         document.getElementById("profile-img").src = allData[0][4] || "https://via.placeholder.com/70x70/800020/ffffff?text=P";
         document.getElementById("profile-name").textContent = allData[1][4] || "Your Channel Name";
         document.getElementById("profile-motto").textContent = allData[2][4] || "Your Inspiring Motto Here!";
@@ -580,14 +585,14 @@ Papa.parse(sheetUrl, {
 
         if (allData[9] && allData[9][4]) document.getElementById("footer-btn1").onclick = () => window.open(allData[9][4], '_blank');
         if (allData[10] && allData[10][4]) document.getElementById("footer-btn2").onclick = () => window.open(allData[10][4], '_blank');
+
         if (allData[6] && allData[6][4]) document.getElementById("youtube-link").href = allData[6][4];
         if (allData[7] && allData[7][4]) document.getElementById("twitter-link").href = allData[7][4];
         if (allData[8] && allData[8][4]) document.getElementById("rumble-link").href = allData[8][4];
 
-        // Popunjavanje linkova
         const linkSection = document.getElementById("link-section");
         linkSection.innerHTML = '';
-        allData.forEach((row) => {
+        allData.forEach((row, index) => {
             const linkText = row[2];
             const targetColumnLetter = row[3];
             if (linkText && targetColumnLetter) {
@@ -602,8 +607,8 @@ Papa.parse(sheetUrl, {
                     autoplayEnabled = true;
                     const colIndex = parseInt(linkItem.dataset.columnIndex);
                     if (isNaN(colIndex)) return;
-                    showVideosFromColumn(colIndex);
                     setActiveLink(linkItem);
+                    showVideosFromColumn(colIndex);
                     document.getElementById('sidebar').scrollTop = 0;
                 });
                 linkSection.appendChild(linkItem);
@@ -646,31 +651,29 @@ function showVideosFromColumn(colIndex) {
             const cell = row[colIndex];
             if (!cell || !cell.trim()) return null;
             const [link, thumb] = cell.split("|").map(s => s.trim());
-            const descColIndex = colIndex + 1;
-            const desc = row[descColIndex] || "";
-            return { link, thumb: thumb || "", desc: desc };
+            const desc = row[colIndex + 1] || "";
+            return { link, thumb: thumb || "", desc };
         })
         .filter(v => v);
 
     if (!currentVideos.length) {
-        videoSection.innerHTML = "<div style='text-align:center; color:var(--text-color-light); padding:20px;'>No videos in this section.</div>";
+        videoSection.innerHTML = "<div style='text-align:center; padding:20px; color:var(--text-color-light);'>No videos in this section.</div>";
         main.innerHTML = "";
         return;
     }
 
-    // Embed first video
-    embedVideo(currentVideos[0].link, main, autoplayEnabled, currentVideos[0].thumb);
-
-    // Učitaj prve chunkSize video-itema
+    embedVideo(currentVideos[0].link, main, true, currentVideos[0].thumb);
     loadMoreVideos();
+
+    videoSection.removeEventListener("scroll", onScrollLazyLoad);
+    videoSection.addEventListener("scroll", onScrollLazyLoad);
 }
 
-// Funkcija za lazy load po chunk-ovima
 function loadMoreVideos() {
     const videoSection = document.getElementById("video-section");
-    const nextChunk = currentVideos.slice(loadedCount, loadedCount + chunkSize);
+    const nextBatch = currentVideos.slice(loadedCount, loadedCount + chunkSize);
 
-    nextChunk.forEach(({ link, thumb, desc }) => {
+    nextBatch.forEach(({ link, thumb, desc }) => {
         const videoItem = document.createElement("div");
         videoItem.className = "video-item";
 
@@ -687,12 +690,12 @@ function loadMoreVideos() {
         info.className = "video-info";
         const description = document.createElement("div");
         description.className = "video-desc";
-        const fullText = desc.trim();
-        const shortText = fullText.length > 35 ? fullText.slice(0, 35) + "…" : fullText;
-        description.textContent = shortText;
-        if (fullText.length > 35) description.setAttribute("data-full", fullText);
-        info.appendChild(description);
 
+        const fullText = desc.trim();
+        description.textContent = fullText.length > 35 ? fullText.slice(0, 35) + "…" : fullText;
+        if (fullText.length > 35) description.setAttribute("data-full", fullText);
+
+        info.appendChild(description);
         videoItem.appendChild(thumbnail);
         videoItem.appendChild(info);
 
@@ -703,16 +706,15 @@ function loadMoreVideos() {
         videoSection.appendChild(videoItem);
     });
 
-    loadedCount += nextChunk.length;
+    loadedCount += nextBatch.length;
 }
 
-// Scroll event za lazy loading
-document.getElementById("video-section").addEventListener("scroll", () => {
+function onScrollLazyLoad() {
     const videoSection = document.getElementById("video-section");
-    if(videoSection.scrollTop + videoSection.clientHeight >= videoSection.scrollHeight - 50) {
-        if (loadedCount < currentVideos.length) loadMoreVideos();
+    if (videoSection.scrollTop + videoSection.clientHeight >= videoSection.scrollHeight - 5) {
+        loadMoreVideos();
     }
-});
+}
 
 function embedVideo(link, container, autoplay, thumb) {
     const youTubeMatch = link.match(/(?:youtube\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -721,23 +723,17 @@ function embedVideo(link, container, autoplay, thumb) {
 
     if (isYouTube) {
         const videoId = youTubeMatch[1];
-        const autoplayParam = autoplay ? 1 : 0;
         container.innerHTML = `<div class="video-wrapper">
-            <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplayParam}&controls=1"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowfullscreen>
-            </iframe>
-        </div>`;
+            <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=${autoplay ? 1 : 0}&controls=1"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen></iframe></div>`;
     } else if (isRumble) {
         const rumbleEmbedLink = link.replace('watch?v=', 'embed/').replace('video/', 'embed/');
         container.innerHTML = `<div class="video-wrapper">
-            <iframe src="${rumbleEmbedLink}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen>
-            </iframe>
-        </div>`;
+            <iframe src="${rumbleEmbedLink}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div>`;
     } else {
         container.innerHTML = `<div class="video-wrapper">
-            <video src="${link}" poster="${thumb}" controls ${autoplay ? "autoplay" : ""}></video>
-        </div>`;
+            <video src="${link}" poster="${thumb}" controls ${autoplay ? "autoplay" : ""}></video></div>`;
     }
 }
 </script>
