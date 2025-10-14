@@ -171,11 +171,14 @@ header.card img {
 
 .link-text {
     font-size: 14px;
-    color: #333;
     line-height: 1.3;
     word-break: break-word;
     flex-grow: 1;
     text-decoration: none;
+    color: #fff; /* ista boja kao dugmad u footeru */
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .video-item img {
@@ -191,7 +194,7 @@ header.card img {
     flex-direction: column;
     justify-content: center;
     flex-grow: 1;
-    position: relative; /* Potrebno za pozicioniranje hover teksta */
+    position: relative; 
 }
 
 .video-desc {
@@ -272,7 +275,8 @@ header.card img {
 }
 
 /* LEPŠA DUGMAD */
-.footer-buttons-right .button-link {
+.footer-buttons-right .button-link,
+#play-next { /* primeni isti stil i na Play Next dugme */
     background: linear-gradient(135deg, #6a11cb, #2575fc);
     color: #fff;
     border: none;
@@ -289,7 +293,8 @@ header.card img {
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
-.footer-buttons-right .button-link:hover {
+.footer-buttons-right .button-link:hover,
+#play-next:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 14px rgba(0,0,0,0.25);
     filter: brightness(1.1);
@@ -343,6 +348,7 @@ header.card img {
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
+
 
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
 
