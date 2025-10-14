@@ -176,6 +176,17 @@ header.card img {
     word-break: break-word;
     flex-grow: 1;
     text-decoration: none;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis for clipped text */
+    max-width: 100%; /* Ensure text respects parent width */
+}
+
+/* Hover effect for link-text */
+.link-text:hover {
+    white-space: normal; /* Allow text to wrap on hover */
+    overflow: visible; /* Show full text on hover */
+    text-overflow: clip; /* No ellipsis on hover */
 }
 
 .video-item img {
@@ -198,17 +209,6 @@ header.card img {
     color: #666;
     line-height: 1.2;
     word-break: break-word;
-    white-space: nowrap; /* Prevent text from wrapping by default */
-    overflow: hidden; /* Hide overflow */
-    text-overflow: ellipsis; /* Add ellipsis for overflowed text */
-    max-width: 160px; /* Adjust based on sidebar width and thumbnail width */
-}
-
-.video-item:hover .video-desc {
-    white-space: normal; /* Allow text to wrap on hover */
-    overflow: visible; /* Show full text on hover */
-    text-overflow: unset; /* Remove ellipsis on hover */
-    max-width: none; /* Remove max-width on hover */
 }
 
 #sidebar-content-wrapper::-webkit-scrollbar {
@@ -327,7 +327,6 @@ let autoplayNextEnabled = false;
 let currentVideos = [];
 let loadedVideoCount = 0;
 const VIDEOS_PER_LOAD = 10;
-const MAX_DESC_LENGTH = 35; // Maximum characters for video description
 let selectedColumnIndex = 0;
 let currentActiveLink = null;
 let currentVideoIndex = 0;
@@ -398,7 +397,8 @@ Papa.parse(sheetUrl, {
 
                 const linkDiv = document.createElement("div");
                 linkDiv.className = "link-text";
-                linkDiv.textContent = linkText;
+                linkDiv.setAttribute("data-full-text", linkText); // Store full text
+                linkDiv.textContent = linkText.length > 35 ? linkText.substring(0, 35) + '...' : linkText;
 
                 linkItem.appendChild(linkDiv);
 
@@ -415,6 +415,15 @@ Papa.parse(sheetUrl, {
                     }
                     selectedColumnIndex = colIndex;
                     resetAndShowVideosFromColumn(colIndex);
+                });
+
+                // Add hover effect to show full text
+                linkDiv.addEventListener('mouseenter', function() {
+                    this.textContent = this.getAttribute('data-full-text');
+                });
+                linkDiv.addEventListener('mouseleave', function() {
+                    const fullText = this.getAttribute('data-full-text');
+                    this.textContent = fullText.length > 35 ? fullText.substring(0, 35) + '...' : fullText;
                 });
 
                 linkSection.appendChild(linkItem);
@@ -481,9 +490,7 @@ function loadMoreVideos() {
 
         const description = document.createElement("div");
         description.className = "video-desc";
-        // Apply character limit and store full text for hover
-        description.textContent = desc.length > MAX_DESC_LENGTH ? desc.substring(0, MAX_DESC_LENGTH) + '...' : desc;
-        description.title = desc; // Set title attribute for full text on hover
+        description.textContent = desc;
 
         info.appendChild(description);
         videoItem.appendChild(thumbnail);
@@ -527,22 +534,49 @@ function embedVideo(link, container, autoplay, videoIndex) {
     const iframe = container.querySelector('iframe');
     if (!iframe) return;
 
-    const player = new YT.Player(iframe, {
-        events: {
-            'onStateChange': function(event) {
-                if (event.data === YT.PlayerState.ENDED) {
-                    if (autoplayNextEnabled) {
-                        let nextIndex = videoIndex + 1;
-                        if (nextIndex >= currentVideos.length) nextIndex = 0;
-                        embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
-                    } else {
-                        player.seekTo(0);
-                        player.playVideo();
+    // Check if YT is defined before creating a new Player
+    if (typeof YT !== 'undefined' && YT.Player) {
+        const player = new YT.Player(iframe, {
+            events: {
+                'onStateChange': function(event) {
+                    if (event.data === YT.PlayerState.ENDED) {
+                        if (autoplayNextEnabled) {
+                            let nextIndex = videoIndex + 1;
+                            if (nextIndex >= currentVideos.length) nextIndex = 0;
+                            embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                        } else {
+                            // If autoplay next is not enabled, replay the current video
+                            player.seekTo(0);
+                            player.playVideo();
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } else {
+        console.warn("YouTube IFrame API not yet loaded. Autoplay state change functionality will not work until loaded.");
+        // Fallback for cases where YT API might not be ready immediately
+        iframe.onload = () => {
+            if (typeof YT !== 'undefined' && YT.Player) {
+                const player = new YT.Player(iframe, {
+                    events: {
+                        'onStateChange': function(event) {
+                            if (event.data === YT.PlayerState.ENDED) {
+                                if (autoplayNextEnabled) {
+                                    let nextIndex = videoIndex + 1;
+                                    if (nextIndex >= currentVideos.length) nextIndex = 0;
+                                    embedVideo(currentVideos[nextIndex].link, mainVideoPlayer, true, nextIndex);
+                                } else {
+                                    player.seekTo(0);
+                                    player.playVideo();
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+    }
 }
 
 // Load YouTube IFrame API
