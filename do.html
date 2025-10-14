@@ -444,7 +444,7 @@ header.card img {
     </div>
 
 </div>
-
+    
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vToqj0JglDOwG_PdfpqiBTA76JnJO9AY38FNnpudB_YevYjhriY6oZbthJeUfqbkPbOdDxf8Aa4R9__/pub?gid=1340620926&single=true&output=csv";
@@ -727,6 +727,24 @@ window.addEventListener("load", () => {
         }
     }
 });
+
+// === AUTO OTVARANJE POLJA PREKO ?open=c1, c2, c3... ===
+window.addEventListener("load", () => {
+    const params = new URLSearchParams(window.location.search);
+    const openParam = params.get("open");
+    if (openParam && /^c\d+$/i.test(openParam)) {
+        const num = parseInt(openParam.substring(1)); // npr. c3 -> 3
+        const targetLetter = String.fromCharCode(64 + num); // 1->A, 2->B, 3->C...
+        const colIndex = letterToIndex(targetLetter);
+
+        if (colIndex !== null) {
+            autoplayEnabled = true;
+            selectedColumnIndex = colIndex;
+            resetAndShowVideosFromColumn(colIndex);
+        }
+    }
+});
+    
 </script>
 
 </body>
