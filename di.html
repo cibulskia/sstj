@@ -18,12 +18,6 @@ body {
     display: inline-block;
     width: 30px;
     height: 30px;
-    transition: transform 0.2s, filter 0.2s;
-}
-
-.social-link:hover {
-    transform: scale(1.2);
-    filter: brightness(1.2);
 }
 
 .social-icon {
@@ -151,15 +145,8 @@ header.card img {
     cursor: pointer;
     border-radius: 8px;
     padding: 6px;
-    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
     background: #fff;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.link-item:hover, .video-item:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    background: #f0f0f0;
 }
 
 .link-item.active {
@@ -214,6 +201,13 @@ header.card img {
     font-size: 14px;
 }
 
+.footer-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .footer-checkbox-wrapper {
     display: flex;
     align-items: center;
@@ -226,33 +220,15 @@ header.card img {
     margin-right: 5px;
 }
 
-.footer-container {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.footer-text-center {
-    text-align: center;
-    flex-grow: 1;
-}
-
-.footer-buttons {
+.footer-buttons-wrapper {
     display: flex;
     gap: 10px;
 }
-.footer-buttons a {
-    text-decoration: none;
+
+.footer-buttons-wrapper button {
     padding: 6px 12px;
-    background: #007bff;
-    color: #fff;
-    border-radius: 6px;
     font-size: 14px;
-    transition: background 0.2s;
-}
-.footer-buttons a:hover {
-    background: #0056b3;
+    cursor: pointer;
 }
 </style>
 </head>
@@ -290,10 +266,10 @@ header.card img {
                     <label for="autoplay-next">Autoplay next</label>
                     <button id="play-next">Play Next</button>
                 </div>
-                <div class="footer-buttons" id="footer-buttons">
-                    <!-- Dugmad iz E7 i E8 će biti ovde -->
+                <div class="footer-buttons-wrapper">
+                    <button id="footer-btn-1"></button>
+                    <button id="footer-btn-2"></button>
                 </div>
-                <span class="footer-text-center" id="footer-text"></span>
             </div>
         </footer>
     </div>
@@ -320,7 +296,8 @@ const videoLoadingIndicator = document.getElementById("video-loading-indicator")
 const mainVideoPlayer = document.getElementById("main");
 const autoplayNextCheckbox = document.getElementById("autoplay-next");
 const playNextButton = document.getElementById("play-next");
-const footerButtonsContainer = document.getElementById("footer-buttons");
+const footerBtn1 = document.getElementById("footer-btn-1");
+const footerBtn2 = document.getElementById("footer-btn-2");
 
 autoplayNextCheckbox.addEventListener("change", () => {
     autoplayNextEnabled = autoplayNextCheckbox.checked;
@@ -347,22 +324,16 @@ Papa.parse(sheetUrl, {
         document.getElementById("content-title").textContent = allData[4][4];
         document.getElementById("video-title").textContent = allData[5][4];
 
-        // Dugmad iz E7 i E8
-        const button1Text = allData[6][4] || "Button 1";
-        const button2Text = allData[7][4] || "Button 2";
+        // Postavi footer dugmad iz E7 i E8 (indeksi 6 i 7 u nizu, jer niz počinje od 0)
+        const footerBtn1Name = allData[6][4] || "Dugme 1";
+        const footerBtn1Link = allData[6][5] || "#";
+        footerBtn1.textContent = footerBtn1Name;
+        footerBtn1.addEventListener("click", () => window.open(footerBtn1Link, "_blank"));
 
-        const button1 = document.createElement("a");
-        button1.href = allData[6][5] || "#";
-        button1.target = "_blank";
-        button1.textContent = button1Text;
-
-        const button2 = document.createElement("a");
-        button2.href = allData[7][5] || "#";
-        button2.target = "_blank";
-        button2.textContent = button2Text;
-
-        footerButtonsContainer.appendChild(button1);
-        footerButtonsContainer.appendChild(button2);
+        const footerBtn2Name = allData[7][4] || "Dugme 2";
+        const footerBtn2Link = allData[7][5] || "#";
+        footerBtn2.textContent = footerBtn2Name;
+        footerBtn2.addEventListener("click", () => window.open(footerBtn2Link, "_blank"));
 
         const linkSection = document.getElementById("link-section");
 
